@@ -1,0 +1,60 @@
+########################################
+# Generated automatically!             #
+########################################
+define ROOTDIR <%= node.nxlog.root %>
+define MONITORDIR <%= node.nxlog.monitor_dir %>
+
+########################################
+# Global directives                    #
+########################################
+#User <%= node.nxlog.user %>
+#Group <%= node.nxlog.group %>
+LogFile %ROOTDIR%/var/nxlog.log
+PidFile %ROOTDIR%/var/nxlog.pid
+LogLevel INFO
+SpoolDir %ROOTDIR%/spool
+CacheDir %ROOTDIR%/cache
+
+########################################
+# Modules                              #
+########################################
+<Extension json>
+    Module      xm_json
+</Extension>
+
+<Input job_stdout>
+    Module im_file
+    File "%MONITORDIR%/*.out"
+    SavePos TRUE
+    Recursive TRUE
+    Exec $Severity = "INFO";
+    Exec $Message = $raw_event;
+    Exec $FileName = substr(file_name(), size("%MONITORDIR%")+1);
+    Exec to_json();
+</Input>
+
+<Input job_stderr>
+    Module im_file
+    File "%MONITORDIR%/*.err"
+    SavePos TRUE
+    Recursive TRUE
+    Exec $Severity = "ERROR";
+    Exec $Message = $raw_event;
+    Exec $FileName = substr(file_name(), size("%MONITORDIR%")+1);
+    Exec to_json();
+</Input>
+
+<Output log_ssl>
+    Module  om_ssl
+    Host    <%= node.nxlog.consumer %>
+    Port    8514
+    AllowUntrusted TRUE
+</Output>
+
+<Route 1>
+    Path    job_stdout => log_ssl
+</Route>
+
+<Route 2>
+    Path    job_stderr => log_ssl
+</Route>

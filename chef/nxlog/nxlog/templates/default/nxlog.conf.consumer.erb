@@ -1,0 +1,44 @@
+########################################
+# Generated automatically!             #
+########################################
+define ROOTDIR <%= node.nxlog.root %>
+
+########################################
+# Global directives                    #
+########################################
+#User <%= node.nxlog.user %>
+#Group <%= node.nxlog.group %>
+LogFile %ROOTDIR%/var/nxlog.log
+PidFile %ROOTDIR%/var/nxlog.pid
+LogLevel INFO
+SpoolDir %ROOTDIR%/spool
+CacheDir %ROOTDIR%/cache
+
+########################################
+# Modules                              #
+########################################
+<Extension json>
+    Module      xm_json
+</Extension>
+
+<Input json_ssl>
+    Module  im_ssl
+    Host    0.0.0.0
+    Port    8514
+    CertFile    %ROOTDIR%/server.pem
+    CertKeyFile %ROOTDIR%/server.key
+    AllowUntrusted TRUE
+    RequireCert    FALSE
+    Exec    parse_json(); 
+    Exec    $SourceIp = $MessageSourceAddress;
+</Input>
+
+<Output incoming_log>
+    Module      om_file
+    File        "%ROOTDIR%/var/incoming.txt"
+    Exec $raw_event = $EventReceivedTime + " " + $SourceIP + " " + $Severity + " fileId=" + $FileName + " " + $Message;
+</Output>
+
+<Route 1>
+    Path    json_ssl => incoming_log
+</Route>
