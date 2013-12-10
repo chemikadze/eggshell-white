@@ -1,0 +1,40 @@
+launch:
+    steps:
+        - init-consumer:
+              action: provisionVms
+              parameters:
+                  phase: "init-consumer"
+                  hardwareId: "m1.small"
+                  roleName: consumer
+                  vmIdentity: ec2-user
+                  imageId: us-east-1/ami-3ecd1e57
+              output:
+                consumerips: ips
+
+        - start-consumer:
+            action: chefsolo
+            parameters:
+              phase: "start-consumer"
+              roles: [ consumer ]
+              precedingPhases: [ init-consumer ]
+              recipeUrl: https://dl.dropboxusercontent.com/u/957640/manifest/cookbooks-2.tar.gz
+              runList: [ "recipe[logstash]", "recipe[logstash::kibana]" ]
+              jattrs:
+                logstash:
+                  user: ec2-user
+                  group: ec2-user
+
+    return:
+        logstash-host:
+            description: Logstash host
+            value: "{$.consumerips[0]}"
+        kibana-dashboard:
+            description: Kibana UI 
+            value: "http://{$.consumerips[0]}/kibana-master/src/index.html#/dashboard/file/logstash.json"
+
+destroy:
+        steps:
+        - destroy-vm:
+            action: undeployEnv
+            parameters:
+                phase: destroy
