@@ -1,0 +1,179 @@
+<!--
+  Read carefully comments marked as 1, 2, 3 and 4.
+-->
+<html>
+<head>
+  <script>app = {propertyWidgets: {}}</script>
+
+  <!-- 1. Put here styles from your qubell installation. -->
+  <link rel="stylesheet" type="text/css" href="http://secure.dev.qubell.com/assets/build/portal.css">
+
+  <!-- 2. Put here your js and css extensions. -->
+  <script type="text/javascript" src="jquery.js"></script>
+  <script type="text/javascript" src="elastic.js"></script>
+  <script type="text/javascript" src="elastic-jquery-client.js"></script>
+
+  <link rel="stylesheet" type="text/css" href="kibana.css">
+  <script type="text/javascript" src="kibana.js"></script>
+
+  <!-- 3. Specify sample data. -->
+  <script>
+    var instance = {id: 'iId', name: "My Instance", applicationId: 'aId', organizationId: 'oId'}
+    var returnValues = [
+      {id: 'host' ,  title: 'Host',   value: '192.168.0.2'},
+      {id: 'status', title: 'Status', value: 'success'},
+      {id: 'ips',    title: 'IPs',    value: ['192.168.0.1', '192.168.0.2']},
+      {id: 'kibana-instance-dashboard', title: 'Kibana dashboard', value: "http://184.73.105.140/kibana-master/src/index.html"}
+    ]
+    var userData = {
+      ips: {'192.168.0.1': 'red', '192.168.0.2': 'green'}
+    }
+  </script>
+
+  <!-- 4. Ignore stuff below. -->
+</head>
+<body>
+  <style>
+    body{width: 600px; margin: 0 auto 0 auto;}
+    .grouped-properties dl {margin-bottom: none;}
+    .dashboard-item {width: 220px;}
+  </style>
+
+  <h1 class="section">Stub for property extensions.</h1>
+
+  <h2 class="section">Instance properties</h2>
+
+  <!-- Instance property. -->
+  <div class="section">
+    <div>
+      <div class="grouped-properties clearfix">
+        <table class='table table-light'>
+          <tbody id='instance-properties'>
+            <!-- <tr data-container-id="status">
+              <td>Status</td>
+              <td class="wrapped" data-id="status"></td>
+            </tr>
+            <tr data-container-id="ips">
+              <td colspan="2">
+                <div class="grouped-properties-block-title">IPs</div>
+                <div class='wrapped' data-id="ips"></div>
+              </td>
+            </tr> -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <h2 class="section">Dashboard item properties</h2>
+
+  <!-- Dashboard property. -->
+  <div class="section dashboard-item">
+    <div class="dashboard-item-body">
+      <a href="#" class="dashboard-item-title">WordPress Production</a>
+      <div class="clearfix"></div>
+      <span class="label label-success">Running</span>
+      <a href="#" class="small">Development</a>
+      <div id="dashboard-item-properties">
+        <!-- <div class="dashboard-item-parameter">
+          <span class="js-tooltip" data-original-title="Host" data-id="host">192.168.0.2</span>
+        </div> -->
+      </div>
+    </div>
+  </div>
+
+
+  <script>
+    (function(){
+      // Code to make all this stub work.
+      var isString = function(obj){return toString.call(obj) == '[object String]'}
+
+      if(!app.propertyWidgets.getWidgetName)
+        app.propertyWidgets.getWidgetName = function(instance, returnValue, userValue){return 'Default'}
+
+      var standardRender = function(instance, returnValue, userValue){
+        return returnValue.value.toString() || '&nbsp;'
+      }
+      app.propertyWidgets.Default = {
+        render      : standardRender,
+        renderSmall : standardRender
+      }
+
+      app.propertyWidgets.renderProperties = function(instance, properties, customProperties){
+        var renderProperty = function(rendererName, template, containerId
+        , id, widget, instance, property, customProperty){
+          var elOrHtml = ''
+          try{
+            elOrHtml = widget[rendererName](instance, property, customProperty)
+          }catch(err){
+            console.warn("can't render widget for '#{id}' property!")
+            console.error(err)
+          }
+
+          var containerEl = document.getElementById(containerId)
+
+          var tmp = document.createElement('tbody')
+          tmp.innerHTML = template
+          for(var i = 0; i < tmp.childNodes.length; i++) containerEl.appendChild(tmp.childNodes[i])
+
+          var propertyEl = containerEl.querySelectorAll("[data-id='" + id + "']")[0]
+          if(isString(elOrHtml)) propertyEl.innerHTML = elOrHtml
+          else if(elOrHtml) propertyEl.appendChild(elOrHtml)
+        }
+
+        var renderPropertyForInstance = function(id, widget, instance, property, customProperty){
+          var inlineTemplate =
+          "<tr data-container-id=\"" + id + "\">" +
+          "  <td>" + (property.title || id) + "</td>" +
+          "  <td class=\"wrapped\" data-id=\"" + id + "\"></td>" +
+          "</tr>"
+
+          var blockTemplate =
+          "<tr data-container-id=\"" + id + "\">" +
+          "  <td colspan=\"2\">" +
+          "    <div class=\"grouped-properties-block-title\">" + (property.title || id) + "</div>" +
+          "    <div class=\"wrapped\" data-id=\"" + id + "\"></div>" +
+          "  </td>" +
+          "</tr>"
+
+          template = widget.layout == 'block' ? blockTemplate : inlineTemplate
+          // var template = "<dt>" + (property.title || id)
+          // + "</dt>\n<dd class=\"wrapped\" data-id=\"" + id + "\"></dd>"
+          renderProperty('render', template, 'instance-properties'
+          , id, widget, instance, property, customProperty)
+        }
+
+        var renderPropertyForDashboard = function(id, widget, instance, property, customProperty){
+          var template =
+          "<div class=\"dashboard-item-parameter\">" +
+          "  <span class=\"js-tooltip\" data-original-title=\"" + (property.title || id) +
+          "    \" data-id=\"" + id + "\"></span>" +
+          "</div>"
+          renderProperty('renderSmall', template, 'dashboard-item-properties'
+          , id, widget, instance, property, customProperty)
+        }
+
+        var mergedProperties = {}
+        for(var i = 0; i < properties.length; i++){
+          var property = properties[i]
+          mergedProperties[property.id] = [property, (customProperties[property.id] || {})]
+        }
+
+        for(var id in mergedProperties){
+          var property       = mergedProperties[id][0]
+          var customProperty = mergedProperties[id][1]
+          var widgetName = app.propertyWidgets.getWidgetName(instance, property, customProperty)
+          if(!widgetName) throw new Error("no widget name for '" + property.id + "' property!")
+          var widget = app.propertyWidgets[widgetName]
+          if(!widget) throw new Error("no widget named as '" + widgetName + "'!")
+          renderPropertyForInstance(id, widget, instance, property, customProperty)
+          renderPropertyForDashboard(id, widget, instance, property, customProperty)
+        }
+      }
+    })()
+
+    // Renderign with sample `returnValues` and `userData`.
+    app.propertyWidgets.renderProperties(instance, returnValues, userData)
+  </script>
+</body>
+</html>
