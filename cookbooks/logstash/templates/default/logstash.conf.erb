@@ -41,6 +41,7 @@ filter {
     add_field => [ "Severity", "ERROR" ]
     add_field => [ "MessageTxt", "%{Message}" ]
     remove_tag => [ "_grokparsefailure" ]
+    tag_on_failure => []
   }
 
   mutate { # other messages stdin
