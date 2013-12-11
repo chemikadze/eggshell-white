@@ -336,7 +336,7 @@ app.propertyWidgets.KibanaLogs = (function() {
                           "alias": "", 
                           "id": 1, 
                           "mandate": "must", 
-                          "query": "@fields.instId == \"\"52a723c5300444fa1ebaa5f1\"\"", 
+                          "query": "@fields.instId == \"" + instance.id + "\"", 
                           "type": "querystring"
                       }
                   }
