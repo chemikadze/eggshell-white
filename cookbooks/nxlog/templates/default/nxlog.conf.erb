@@ -27,9 +27,9 @@ CacheDir %ROOTDIR%/cache
     File "%MONITORDIR%/*.out"
     SavePos TRUE
     Recursive TRUE
-    Exec $Severity = "INFO";
     Exec $Message = $raw_event;
     Exec $FileName = substr(file_name(), size("%MONITORDIR%")+1);
+    Exec $Stream = "stdout";
     Exec to_json();
 </Input>
 
@@ -38,9 +38,9 @@ CacheDir %ROOTDIR%/cache
     File "%MONITORDIR%/*.err"
     SavePos TRUE
     Recursive TRUE
-    Exec $Severity = "ERROR";
     Exec $Message = $raw_event;
     Exec $FileName = substr(file_name(), size("%MONITORDIR%")+1);
+    Exec $Stream = "stderr";
     Exec to_json();
 </Input>
 

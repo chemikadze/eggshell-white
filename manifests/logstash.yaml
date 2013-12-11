@@ -17,7 +17,7 @@ launch:
               phase: "start-consumer"
               roles: [ consumer ]
               precedingPhases: [ init-consumer ]
-              recipeUrl: https://dl.dropboxusercontent.com/u/957640/manifest/cookbooks-2.tar.gz
+              recipeUrl: https://dl.dropboxusercontent.com/u/4688904/qubell-logging/logstash.tar.gz
               runList: [ "recipe[logstash]", "recipe[logstash::kibana]" ]
               jattrs:
                 logstash:

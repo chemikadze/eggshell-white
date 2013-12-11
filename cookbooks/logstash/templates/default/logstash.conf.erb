@@ -1,0 +1,72 @@
+input {
+  tcp {
+    format => "json"
+    mode => "server"
+    host => "0.0.0.0"
+    port => 8514
+    ssl_enable => true
+    ssl_cert => "/var/lib/logstash/server.pem"
+    ssl_key => "/var/lib/logstash/server.key"
+    ssl_verify => false
+    type => "nxlog"
+  }
+}
+filter {
+  date {
+      match => [ "EventReceivedTime", "YYYY-MM-dd HH:mm:ss" ]
+  }
+
+  grok {
+      type => "nxlog"
+      match => [ "FileName", "%{DATA:instId}/%{DATA:jobId}\.%{DATA:stepId}\.%{DATA:stepname}/%{GREEDYDATA:filename}" ]
+      break_on_match => false
+  }
+
+  grok { # chef logs
+      type => "nxlog" # TIMESTAMP_ISO8601
+                      # [2013-12-11T18:21:19+00:00] INFO: Setting the run_list to ["recipe[chef-solo-extension]", "recipe[nxlog]"] from JSON
+      match => [ "Message", "\[[^\]]+\] %{LOGLEVEL:Severity}: %{GREEDYDATA:MessageTxt}" ]
+      remove_tag => "_grokparsefailure"
+  }
+  grok { # chef client warnings
+      type => "nxlog"
+      match => [ "Message", ".undeploy.me/%{DATA}/%{DATA}\.%{DATA}\.%{DATA}/%{GREEDYDATA}:%{NUMBER}: %{DATA:Severity}: %{GREEDYDATA:MessageTxt}" ]
+      remove_tag => "_grokparsefailure"
+  }  
+
+  grok { # other messages from stderr
+    type => "nxlog"
+    tags => [ "_grokparsefailure" ] 
+    match => [ "Stream", "stderr" ]
+    add_field => [ "Severity", "ERROR" ]
+    add_field => [ "MessageTxt", "%{Message}" ]
+    remove_tag => [ "_grokparsefailure" ]
+  }
+
+  mutate { # other messages stdin
+    type => "nxlog"
+    tags => [ "_grokparsefailure" ] 
+    add_field => [ "Severity", "INFO" ]
+    add_field => [ "MessageTxt", "%{Message}" ]
+  }
+
+  mutate {
+      type => "nxlog"
+      replace => [ "@severity", "%{Severity}" ]
+      replace => [ "@message", "%{MessageTxt}" ]
+      replace => [ "@fullMessage", "%{Message}" ]
+  }  
+
+  mutate {
+      type => "nxlog"
+      remove => [ "SourceModuleType", "SourceModuleName", "EventReceivedTime", "FileName", "@source_path", "@source" ]
+  }
+
+}
+output {
+  stdout { debug => true }
+  elasticsearch {
+      index => "logstash-%{+YYYY.MM.dd.HH}"
+      embedded => true
+  }
+}

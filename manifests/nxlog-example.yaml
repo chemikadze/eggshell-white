@@ -20,7 +20,7 @@ launch:
                 properties: result
 
         - provision-vm:
-              action: provisionLoggableVms
+              action: .provisionLoggableVms
               phase: provision-vm
               parameters:                  
                   quantity: "{$.logger-num}"
@@ -31,6 +31,22 @@ launch:
               output:
                 loggerips: ips
 
+        - do-something:
+              action: do-something
+              precedingPhases: [init-properties, provision-vm]
+              parameters: {}
+
+    return:
+        vms:
+            description: VMs 
+            value: "{$.loggerips}"
+        kibana-instance-dashboard:
+            description: Kibana Dashboard for instance
+            value: "{$.properties.logstash.kibana-dashboard}"
+
+
+do-something:
+    steps:
         - run-command:
             action: execrun
             phase: "run-command"
@@ -46,23 +62,24 @@ launch:
             precedingPhases: [ provision-vm, run-command ]
             parameters:
               roles: [ logger ]
-              recipeUrl: https://dl.dropboxusercontent.com/u/957640/manifest/nxlog.tar.gz
+              recipeUrl: https://dl.dropboxusercontent.com/u/4688904/qubell-logging/nxlog.tar.gz
               runList: [ "recipe[nxlog]" ]
               jattrs:
                 nxlog:
                   user: ec2-user
                   group: ec2-user
                   root: /home/ec2-user/nxlog
-    return:
-        vms:
-            description: VMs 
-            value: "{$.loggerips}"
-        kibana-instance-dashboard:
-            description: Kibana Dashboard for instance
-            value: "{$.properties.logstash.kibana-dashboard}"
 
 
-provisionLoggableVms:
+destroy:
+    steps:
+    - destroy-vm:
+        action: undeployEnv
+        parameters:
+            phase: destroy
+
+
+.provisionLoggableVms:
     parameters:
         roleName:
           type: string
@@ -174,7 +191,7 @@ provisionLoggableVms:
             precedingPhases: [ provision ]
             parameters:
               roles: [ logger ]
-              recipeUrl: https://dl.dropboxusercontent.com/u/957640/manifest/nxlog.tar.gz
+              recipeUrl: https://dl.dropboxusercontent.com/u/4688904/qubell-logging/nxlog.tar.gz
               runList: [ "recipe[nxlog::logger]" ]
               jattrs:
                 nxlog:
@@ -190,13 +207,3 @@ provisionLoggableVms:
           value: "{$.vms}"
         privateips:
           value: "{$.privateips}"
-
-
-
-
-destroy:
-        steps:
-        - destroy-vm:
-            action: undeployEnv
-            parameters:
-                phase: destroy
