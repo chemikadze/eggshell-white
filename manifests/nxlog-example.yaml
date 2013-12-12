@@ -44,8 +44,12 @@ launch:
             description: Kibana Dashboard for instance
             value: "{$.properties.logstash.kibana-dashboard}"
 
-
 do-something:
+    parameters:
+        command:
+          type: string
+          default: 'echo "Hello from execrun!"'
+          description: 'Command to execute'
     steps:
         - run-command:
             action: execrun
@@ -54,7 +58,7 @@ do-something:
             parameters:
               roles: [ logger ]
               command:
-                - 'echo "Hello from execrun!"'
+                - '{$.command}'
 
         - dummy-chefrun:
             action: chefsolo
