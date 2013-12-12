@@ -22,31 +22,38 @@ filter {
       break_on_match => false
   }
 
+  mutate {
+    type => "nxlog"
+    add_tag => "unprocessed"
+  }
+
   grok { # chef logs
       type => "nxlog" # TIMESTAMP_ISO8601
                       # [2013-12-11T18:21:19+00:00] INFO: Setting the run_list to ["recipe[chef-solo-extension]", "recipe[nxlog]"] from JSON
+      tags => [ "unprocessed" ]
+      remove_tag => [ "unprocessed" ]
       match => [ "Message", "\[[^\]]+\] %{LOGLEVEL:Severity}: %{GREEDYDATA:MessageTxt}" ]
-      remove_tag => "_grokparsefailure"
   }
   grok { # chef client warnings
       type => "nxlog"
+      tags => [ "unprocessed" ]
+      remove_tag => [ "unprocessed" ]
       match => [ "Message", ".undeploy.me/%{DATA}/%{DATA}\.%{DATA}\.%{DATA}/%{GREEDYDATA}:%{NUMBER}: %{DATA:Severity}: %{GREEDYDATA:MessageTxt}" ]
-      remove_tag => "_grokparsefailure"
   }  
 
   grok { # other messages from stderr
     type => "nxlog"
-    tags => [ "_grokparsefailure" ] 
+    tags => [ "unprocessed" ]
+    remove_tag => [ "unprocessed" ]
     match => [ "Stream", "stderr" ]
     add_field => [ "Severity", "ERROR" ]
     add_field => [ "MessageTxt", "%{Message}" ]
-    remove_tag => [ "_grokparsefailure" ]
-    tag_on_failure => []
   }
 
   mutate { # other messages stdin
     type => "nxlog"
-    tags => [ "_grokparsefailure" ] 
+    tags => [ "unprocessed" ]
+    remove_tag => [ "unprocessed" ] 
     add_field => [ "Severity", "INFO" ]
     add_field => [ "MessageTxt", "%{Message}" ]
   }
@@ -55,12 +62,12 @@ filter {
       type => "nxlog"
       replace => [ "@severity", "%{Severity}" ]
       replace => [ "@message", "%{MessageTxt}" ]
-      replace => [ "@fullMessage", "%{Message}" ]
+      replace => [ "@raw", "%{Message}" ]
   }  
 
   mutate {
       type => "nxlog"
-      remove => [ "SourceModuleType", "SourceModuleName", "EventReceivedTime", "FileName", "@source_path", "@source" ]
+      remove => [ "Message", "MessageTxt", "Severity", "SourceModuleType", "SourceModuleName", "EventReceivedTime", "FileName", "@source_path", "@source" ]
   }
 
 }
