@@ -1,5 +1,17 @@
 all: target pack_cookbooks javascript
 
+upload_as_latest: all
+	./upload-assets.sh latest
+.PHONY: upload_latest
+
+upload_as_stable: all
+	./upload-assets.sh stable	
+.PHONY: upload_stable
+
+upload_new_version: all
+	./upload-assets.sh -f $(shell git log -n 1 --pretty=format:%h)
+.PHONY: upload_stable
+
 pack_cookbooks: target/logstash.tar.gz target/nxlog.tar.gz
 .PHONY: pack_cookbooks
 
