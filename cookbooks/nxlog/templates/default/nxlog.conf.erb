@@ -44,7 +44,17 @@ CacheDir %ROOTDIR%/cache
     Exec to_json();
 </Input>
 
-<Processor buffer>
+<Processor stderr_buffer>
+    Module      pm_buffer
+    # 8Mb buffer
+    MaxSize 8192
+    Type Mem
+    # warn at 7M
+    WarnLimit 7000
+</Processor>
+
+
+<Processor stdout_buffer>
     Module      pm_buffer
     # 8Mb buffer
     MaxSize 8192
@@ -61,9 +71,10 @@ CacheDir %ROOTDIR%/cache
 </Output>
 
 <Route 1>
-    Path    job_stdout => buffer => log_ssl
+    Path    job_stdout => stdout_buffer => log_ssl
 </Route>
 
 <Route 2>
-    Path    job_stderr => buffer => log_ssl
+    Path    job_stderr => stderr_buffer => log_ssl
 </Route>
+
