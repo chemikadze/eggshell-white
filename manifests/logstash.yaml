@@ -1,4 +1,14 @@
 launch:
+    parameters:
+        logging-cookbooks-version: 
+          type: string
+          default: latest
+        vm-user:
+          type: string
+          default: ec2-user
+        vm-group:
+          type: string
+          default: ec2-user
     steps:
         - init-consumer:
               action: provisionVms
@@ -6,23 +16,18 @@ launch:
                   phase: "init-consumer"
                   hardwareId: "m1.small"
                   roleName: consumer
-                  vmIdentity: ec2-user
+                  vmIdentity: "{$.vm-user}"
                   imageId: us-east-1/ami-3ecd1e57
               output:
                 consumerips: ips
 
         - start-consumer:
-            action: chefsolo
-            parameters:
-              phase: "start-consumer"
-              roles: [ consumer ]
-              precedingPhases: [ init-consumer ]
-              recipeUrl: https://dl.dropboxusercontent.com/u/4688904/qubell-logging/logstash.tar.gz
-              runList: [ "recipe[logstash]", "recipe[logstash::kibana]" ]
-              jattrs:
-                logstash:
-                  user: ec2-user
-                  group: ec2-user
+            action: .install-logger
+            precedingPhases: [ init-consumer ]
+            phase: "start-consumer"
+            parameters: 
+              vm-user: "{$.vm-user}"
+              vm-group: "{$.vm-group}"
 
     return:
         logstash-host:
@@ -31,6 +36,35 @@ launch:
         kibana-dashboard:
             description: Kibana UI 
             value: "http://{$.consumerips[0]}/kibana-master/src/index.html#/dashboard/file/logstash.json"
+
+
+.install-logger: &INSTALL
+    parameters:
+        logging-cookbooks-version: 
+          type: string
+          default: latest
+        vm-user:
+          type: string
+          default: ec2-user
+        vm-group:
+          type: string
+          default: ec2-user
+    steps:
+      - install-logger:
+          action: chefsolo
+          parameters:
+            phase: "start-consumer"
+            roles: [ consumer ]
+            precedingPhases: [ ]
+            recipeUrl: "http://qubell-logging.s3.amazonaws.com/{$.logging-cookbooks-version}/logstash.tar.gz"
+            runList: [ "recipe[logstash]", "recipe[logstash::kibana]" ]
+            jattrs:
+              logstash:
+                user: "{$.vm-user}"
+                group: "{$.vm-group}"
+
+update:
+  <<: *INSTALL
 
 destroy:
         steps:

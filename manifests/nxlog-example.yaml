@@ -1,78 +1,143 @@
 header:
     version: "1.1"
     services:
+        # ADD TO YOUR MANIFEST
         logstash:
             logstash-host:    consume-signal(string)
             kibana-dashboard: consume-signal(string)
 
 launch:
     parameters:
-        logger-num:
+        logger-num: # for test purposes
             description: Number of loggers
             type: int
             default: 2
+        logger-cookbooks-version: # for test purposes
+            type: string
+            default: "latest"
     steps:
-        - init-properties:
-              action: getEnvironmentProperties
-              phase: "init-properties"
-              parameters: {}
-              output:
-                properties: result
 
+        # needed to show dashboard link
+        - init-properties:
+            action: getEnvironmentProperties
+            phase: "init-properties"
+            parameters: {}
+            output:
+              properties: result
+
+        # example usage of reusable step
         - provision-vm:
-              action: .provisionLoggableVms
+              action: .provisionLoggableVms 
               phase: provision-vm
               parameters:                  
                   quantity: "{$.logger-num}"
                   hardwareId: "m1.small"
                   roleName: logger
-                  vmIdentity: ec2-user
+                  vmIdentity: ec2-user # TODO: test it works if vmIdentity != logger-user
                   imageId: us-east-1/ami-3ecd1e57
+                  # can be skipped, and "stable" will be used. only for development purposes
+                  logger-cookbooks-version: "{$.logger-cookbooks-version}"
               output:
                 loggerips: ips
 
+        # test how it works
         - do-something:
               action: do-something
-              precedingPhases: [init-properties, provision-vm]
+              precedingPhases: [ provision-vm ]
               parameters: {}
 
     return:
         vms:
             description: VMs 
             value: "{$.loggerips}"
+        # ADD TO YOUR MANIFEST this return value should present to get rendered widget with link
         kibana-instance-dashboard:
             description: Kibana Dashboard for instance
             value: "{$.properties.logstash.kibana-dashboard}"
 
+# for development purposes
 do-something:
     parameters:
         command:
           type: string
           default: 'echo "Hello from execrun!"'
-          description: 'Command to execute'
+          description: "Command to execute"
     steps:
         - run-command:
             action: execrun
             phase: "run-command"
-            precedingPhases: [ provision-vm ]
+            precedingPhases: [  ]
             parameters:
               roles: [ logger ]
               command:
-                - '{$.command}'
+                - "{$.command}"
+            output:
+              stdout: stdout
+              stderr: stderr
+    return:
+      stdout:
+        value: "{$.stdout}"
+      stderr:
+        value: "{$.stderr}"
 
+
+do-empty-chef-run:
+    steps:
         - dummy-chefrun:
             action: chefsolo
             phase: "dummy-chefrun"
-            precedingPhases: [ provision-vm, run-command ]
+            precedingPhases: [ ]
             parameters:
               roles: [ logger ]
-              recipeUrl: https://dl.dropboxusercontent.com/u/4688904/qubell-logging/nxlog.tar.gz
-              runList: [ "recipe[nxlog]" ]
-              jattrs:
-                nxlog:
-                  user: ec2-user
-                  group: ec2-user
-                  root: /home/ec2-user/nxlog
+              recipeUrl: "http://qubell-logging.s3.amazonaws.com/{$.logger-cookbooks-version}/nxlog.tar.gz"
+              runList: [ ]
+              jattrs: {}
+            output:
+              chefState: chefState
+    return:
+        chefState:
+          value: "{$.chefState}"
+
+
+# for development purposes
+update-logger:
+    parameters:
+      roleName:
+        type: string
+        default: "logger"
+      logger-cookbooks-version:
+        type: string
+        default: "latest"
+      logger-user:
+        type: string
+        default: ec2-user
+      logger-group:
+        type: string
+        default: ec2-user
+    steps:
+
+      - init-properties:
+          action: getEnvironmentProperties
+          phase: "init-properties"
+          parameters: {}
+          output:
+            properties: result
+
+      - install-logger:
+          action: chefsolo
+          phase: start-logger
+          precedingPhases: [ ]
+          parameters:
+            roles: [ logger ]
+            recipeUrl: "http://qubell-logging.s3.amazonaws.com/{$.logger-cookbooks-version}/nxlog.tar.gz"
+            runList: [ "recipe[nxlog::logger]" ]
+            jattrs:
+              nxlog:
+                user: "{$.logger-user}"
+                group: "{$.logger-group}"
+                root: "/home/{$.logger-user}/nxlog"
+                monitor_dir: /home/{$.logger-user}/.undeploy.me
+                consumer: "{$.properties.logstash.logstash-host}"
 
 
 destroy:
@@ -83,6 +148,9 @@ destroy:
             phase: destroy
 
 
+
+# THIS IS ACTUAL REUSABLE STEP FOR OTHER MANIFESTS
+# ADD TO YOUR MANIFEST
 .provisionLoggableVms:
     parameters:
         roleName:
@@ -107,7 +175,7 @@ destroy:
           default: ""
         staticIps:
           default: ""
-        # This parameter is obsolete. Use 'staticIps' instead.
+        # This parameter is obsolete. Use "staticIps" instead.
         ip:
           type: string
           default: ""
@@ -158,10 +226,28 @@ destroy:
         providerSettings:
           type: map
           default: {}
+
+        logger-cookbooks-version:
+          type: string
+          default: "stable"
+        logger-user:
+          type: string
+          default: ec2-user
+        logger-group:
+          type: string
+          default: ec2-user
+
     steps:
-        - init-logger:
+        - init-properties:
+              action: getEnvironmentProperties
+              phase: init-properties
+              parameters: {}
+              output:
+                properties: result
+
+        - wrapped-provision-vms:
               action: provisionVms
-              phase: provision
+              phase: provision              
               parameters:                  
                   instanceId: "{$.instanceId}"
                   ip: "{$.ip}"
@@ -192,17 +278,17 @@ destroy:
         - start-logger:
             action: chefsolo
             phase: start-logger
-            precedingPhases: [ provision ]
+            precedingPhases: [ init-properties, provision ]
             parameters:
               roles: [ logger ]
-              recipeUrl: https://dl.dropboxusercontent.com/u/4688904/qubell-logging/nxlog.tar.gz
+              recipeUrl: "http://qubell-logging.s3.amazonaws.com/{$.logger-cookbooks-version}/nxlog.tar.gz"
               runList: [ "recipe[nxlog::logger]" ]
               jattrs:
                 nxlog:
-                  user: ec2-user
-                  group: ec2-user
-                  root: /home/ec2-user/nxlog
-                  monitor_dir: /home/ec2-user/.undeploy.me
+                  user: "{$.logger-user}"
+                  group: "{$.logger-group}"
+                  root: "/home/{$.logger-user}/nxlog"
+                  monitor_dir: "/home/{$.vmIdentity}/.undeploy.me"
                   consumer: "{$.properties.logstash.logstash-host}"
     return:
         ips:
