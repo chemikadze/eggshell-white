@@ -38,8 +38,8 @@ app.propertyWidgets.KibanaLogs = (function() {
         },
         // Failure
         function() {
-          console.error("Can not save dashboard '" + save.title + "'")
-          return false;
+          alert("Can not connect to logging dashboard.")
+          throw "Can not save dashboard '" + save.title + "'"
         }
       );
   };
@@ -69,10 +69,11 @@ app.propertyWidgets.KibanaLogs = (function() {
       console.debug("root is " + root)
       var ejsClient = getClient(root)
       var dashboard = dashboardForInstance(instance)
+
       elasticsearchSaveDashboard(ejsClient, dashboard, function() {
-        url.hash = "#/dashboard/elasticsearch/" + dashboard.title
-        console.log(url)
-        document.location = url
+        url.hash = "#/dashboard/elasticsearch/" + dashboard.title;
+        console.debug(url);
+        window.location = url
       })
     }
   }
@@ -402,12 +403,12 @@ app.propertyWidgets.KibanaLogs = (function() {
   return {
     layout: 'inline',
     render: function(instance, returnValue, userValue) {
-      return $("<a/>").text("See logs").attr("href", "#").click(
+      return $("<button class=\"btn\"/>").text("Open logs...").attr("href", "#").click(
         onInstanceLinkClicked(instance, returnValue, userValue)
       ).get(0);
     },
     renderSmall: function(instance, returnValue, userValue) {
-      return $("<a/>").text("See logs").attr("href", "#").click(
+      return $("<button class=\"btn btn-mini\"/>").text("Open logs...").attr("href", "#").click(
         onInstanceLinkClicked(instance, returnValue, userValue)
       ).get(0);
     }
