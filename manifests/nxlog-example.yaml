@@ -33,7 +33,7 @@ launch:
                   quantity: "{$.logger-num}"
                   hardwareId: "m1.small"
                   roleName: logger
-                  vmIdentity: ec2-user # TODO: test it works if vmIdentity != logger-user
+                  vmIdentity: ec2-user
                   imageId: us-east-1/ami-3ecd1e57
                   # can be skipped, and "stable" will be used. only for development purposes
                   logger-cookbooks-version: "{$.logger-cookbooks-version}"
@@ -230,12 +230,13 @@ destroy:
         logger-cookbooks-version:
           type: string
           default: "stable"
-        logger-user:
-          type: string
-          default: ec2-user
-        logger-group:
-          type: string
-          default: ec2-user
+        # TODO
+        # logger-user:
+        #   type: string
+        #   default: ec2-user
+        # logger-group:
+        #   type: string
+        #   default: ec2-user
 
     steps:
         - init-properties:
@@ -285,9 +286,12 @@ destroy:
               runList: [ "recipe[nxlog::logger]" ]
               jattrs:
                 nxlog:
-                  user: "{$.logger-user}"
-                  group: "{$.logger-group}"
-                  root: "/home/{$.logger-user}/nxlog"
+                  # user: "{$.logger-user}"
+                  # group: "{$.logger-group}"
+                  # root: "/home/{$.logger-user}/.undeploy.me-nxlog"
+                  user: "{$.vmIdentity}"
+                  group: "{$.vmIdentity}"
+                  root: "/home/{$.vmIdentity}/.undeploy.me-nxlog"
                   monitor_dir: "/home/{$.vmIdentity}/.undeploy.me"
                   consumer: "{$.properties.logstash.logstash-host}"
     return:
