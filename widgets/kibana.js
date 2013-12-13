@@ -326,7 +326,7 @@ app.propertyWidgets.KibanaLogs = (function() {
                           "active": true, 
                           "alias": "", 
                           "field": "@timestamp", 
-                          "from": "now-1h", 
+                          "from": "now-1d", 
                           "id": 0, 
                           "mandate": "must", 
                           "to": "now", 
