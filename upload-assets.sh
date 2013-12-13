@@ -1,5 +1,5 @@
 if [ x$1 != 'x-f' ]; then
-  read -p "Are you sure? Old 'stable' assets will be lost and overwritten. (y/n): " -r ;
+  read -p "Are you sure? Old '$1' assets will be lost and overwritten. (y/n): " -r ;
   if [[ ! $REPLY =~ ^[Yy]$ ]] ;
   then 
     exit 1
