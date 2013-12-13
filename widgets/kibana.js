@@ -79,7 +79,7 @@ app.propertyWidgets.KibanaLogs = (function() {
 
   function dashboardForInstance(instance) {
     return {
-          "title": "Logstash Search for instance " + instance.name + " (" + instance.id + ")",
+          "title": "Logs for '" + instance.name + "'",
           "editable": true, 
           "failover": false, 
           "index": {
@@ -92,12 +92,12 @@ app.propertyWidgets.KibanaLogs = (function() {
               "hide": false, 
               "load_elasticsearch": true, 
               "load_elasticsearch_size": 20, 
-              "load_gist": true, 
-              "load_local": true, 
-              "save_default": true, 
+              "load_gist": false, 
+              "load_local": false, 
+              "save_default": false, 
               "save_elasticsearch": true, 
               "save_gist": false, 
-              "save_local": true, 
+              "save_local": false, // seems broken 
               "save_temp": true, 
               "save_temp_ttl": "30d", 
               "save_temp_ttl_enable": true
@@ -168,7 +168,7 @@ app.propertyWidgets.KibanaLogs = (function() {
                   "collapsable": true, 
                   "collapse": false, 
                   "editable": true, 
-                  "height": "350px", 
+                  "height": "200px", 
                   "notice": false, 
                   "panels": [
                       {
@@ -264,10 +264,11 @@ app.propertyWidgets.KibanaLogs = (function() {
                           "editable": true, 
                           "error": false, 
                           "field_list": false, 
-                          "fields": [
+                          "fields": [                              
                               "@timestamp", 
                               "@fields.stepname", 
                               "@source_host", 
+                              "@severity",
                               "@message"
                           ], 
                           "group": [
@@ -370,7 +371,7 @@ app.propertyWidgets.KibanaLogs = (function() {
                           "enable": true, 
                           "id": 2, 
                           "pin": false, 
-                          "query": "@severity:WARN", 
+                          "query": "@severity:WARN*", 
                           "type": "lucene"
                       }, 
                       "3": {
