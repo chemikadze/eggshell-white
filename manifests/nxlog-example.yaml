@@ -167,7 +167,7 @@ enable-logging:
                 nxlog:
                   user: "{$.vmIdentity}"
                   group: "{$.vmIdentity}"
-                  root: "/home/{$.vmIdentity}/.undeploy.me-nxlog"
+                  root: "/home/{$.vmIdentity}/.undeploy.me/nxlog"
                   monitor_dir: "/home/{$.vmIdentity}/.undeploy.me"
                   consumer: "{$.logstash-host}"
 
