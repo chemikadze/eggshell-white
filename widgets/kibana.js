@@ -44,6 +44,36 @@ app.propertyWidgets.KibanaLogs = (function() {
       );
   };
 
+  function elasticsearchMetaForInstance(client, instanceId, onSuccess) {
+    // TODO: this is heavy, should use simple facet without script
+    var request = client.Request()
+      .query(client.QueryStringQuery("@fields.instId:\"" + instanceId + "\""))
+      .size(0)
+      .facet(client.TermsFacet("steps").script("_source[\"@fields\"][\"stepname\"]"))
+      .facet(client.TermsFacet("vms").script("_source[\"@source_host\"]"));
+    
+    request.doSearch(
+      function(r) {
+        var steps = [];        
+        var stepTerms = r['facets']['steps']['terms'];
+        for (var i = 0; i < stepTerms.length; ++i) {
+          steps.push(stepTerms[i]['term']);
+        }
+
+        var vms = [];        
+        var vmsTerms = r['facets']['vms']['terms'];
+        for (var i = 0; i < vmsTerms.length; ++i) {
+          vms.push(vmsTerms[i]['term']);
+        }
+
+        onSuccess({'vms': vms, 'steps': steps});
+      },
+      function() {
+        alert("Can not get list of steps");
+        throw "Can not get list of steps";
+      })
+  }
+
   function ejsFor(root) {
     // TODO: can not be used concurrently :(
     ejs.client = ejs.jQueryClient(root);
@@ -61,21 +91,133 @@ app.propertyWidgets.KibanaLogs = (function() {
     return parser;
   }  
 
+  function elasticsearchUrl(kibanaUrl) {
+    var url = parseUrl(kibanaUrl); 
+    var root = url.protocol + "//" + url.hostname + ":" + config.elasticsearchPort;
+    return root;
+  }
+
   function onInstanceLinkClicked(instance, returnValue, userValue) {
-    return function() {
-      console.debug("value = " + returnValue.value);
-      var url = parseUrl(returnValue.value); 
-      var root = url.protocol + "//" + url.hostname + ":" + config.elasticsearchPort;
-      console.debug("root is " + root)
-      var ejsClient = getClient(root)
+    return function() {      
+      var ejsClient = getClient(elasticsearchUrl(returnValue.value));
       var dashboard = dashboardForInstance(instance)
 
       elasticsearchSaveDashboard(ejsClient, dashboard, function() {
+        var url = parseUrl(returnValue.value); 
         url.hash = "#/dashboard/elasticsearch/" + dashboard.title;
-        console.debug(url);
         window.location = url
       })
     }
+  }
+
+  function onLogParametersClicked(instance, returnValue, userValue) {
+    function onShowFilteredLogs(ev) {
+      var ejsClient = getClient(elasticsearchUrl(returnValue.value));
+
+      var $dropdown = $(ev.target).parent(".dropdown-menu");
+      var choosenSteps = [];
+      var choosenVms = [];      
+
+      var stepEls = $dropdown.find("[data-step-name]");
+      for (var i = 0; i < stepEls.length; ++i) {
+        if (stepEls[i].checked) {
+          choosenSteps.push(stepEls[i].getAttribute('data-step-name'));
+        }
+      }
+
+      var vmEls = $dropdown.find("[data-vm-addr]");
+      for (var i = 0; i < vmEls.length; ++i) {
+        if (vmEls[i].checked) {
+          choosenVms.push(vmEls[i].getAttribute('data-vm-addr'));
+        }
+      }      
+        
+      var dashboard = withFilters(dashboardForInstance(instance), filterVms(choosenVms).concat(filterSteps(choosenSteps)));
+      elasticsearchSaveDashboard(ejsClient, dashboard, function() {
+        var url = parseUrl(returnValue.value); 
+        url.hash = "#/dashboard/elasticsearch/" + dashboard.title;
+        window.location = url
+      })
+    }
+
+    function renderWaitingDropdown($el, vms) {
+      $el.empty();
+      var target = $('<li style="width: 160; height: 100;"/>');
+      $el.append(target);
+      var spinner = new Spinner({left: '55', top: '30'}).spin(target.get(0));
+    }
+
+    function renderDropdown($ul, steps, vms) {    
+      $ul.empty();
+      $ul.attr("style", "padding: 10px");
+      // $el = $("<li/>"); // breaks render in Chrome
+      // $ul.append($el);
+      $el = $ul; 
+      $el.append('<h4>Steps</h4>');
+      for (var i = 0; i < steps.length; ++i) {
+        $step = $('<label class="checkbox"/>').append($('<input/>').attr('type', 'checkbox').attr('data-step-name', steps[i])).append(steps[i]);
+        $el.append($step);
+      }
+      $el.append('<h4>VMs</h4>');
+      for (var i = 0; i < vms.length; ++i) {
+        $vm = $('<label class="checkbox"/>').append($('<input/>').attr('type', 'checkbox').attr('data-vm-addr', vms[i])).append(vms[i]);
+        $el.append($vm);
+      }
+      $el.append($('<a class="btn">Open</a>').click(onShowFilteredLogs))
+    }
+
+    return function() {
+      var $el = $(this);
+      var $dropdown = $el.siblings(".dropdown-menu"); 
+      renderWaitingDropdown($dropdown);
+
+      var ejsClient = getClient(elasticsearchUrl(returnValue.value));
+      elasticsearchMetaForInstance(ejsClient, instance.id, function(meta) {
+        renderDropdown($dropdown, meta.steps, meta.vms)
+      });
+    }
+  }
+
+  function newFilter(queryString) {
+    return {
+      "active": true, 
+      "alias": "", 
+      "id": -1, 
+      "mandate": "must", 
+      "query": queryString, 
+      "type": "querystring"
+    }
+  }
+
+  function filterVms(vms) {
+    if (vms.length > 0) {
+      var queryString = vms.map(function(vmAddr) { return '@source_host:"' + vmAddr + '"' }).join(" OR ");
+      return [newFilter(queryString)];
+    } else {
+      return [];
+    }
+  }
+
+  function filterSteps(steps) {
+    if (steps.length > 0) {
+      var queryString = steps.map(function(step) { return '@fields.stepname:"' + step + '"' }).join(" OR ");
+      return [newFilter(queryString)];
+    } else {
+      return [];
+    }
+  }
+
+  function withFilters(dashboard, filters) {
+    var dashFilters = dashboard['services']['filter'];
+    var idBase = Math.max.apply(Math, dashFilters['ids']) + 1;
+    for (var i = 0; i < filters.length; ++i) {
+      var filter = filters[i];
+      var id = idBase + i;
+      filter['id'] = id;
+      dashFilters['ids'].push(id);
+      dashFilters['list'][id.toString()] = filter;
+    }
+    return dashboard;
   }
 
   function dashboardForInstance(instance) {
@@ -315,8 +457,8 @@ app.propertyWidgets.KibanaLogs = (function() {
           "services": {
               "filter": {
                   "idQueue": [
-                      1, 
-                      2
+                  //    1, 
+                  //    2
                   ], 
                   "ids": [
                       1, 
@@ -338,7 +480,7 @@ app.propertyWidgets.KibanaLogs = (function() {
                           "alias": "", 
                           "id": 1, 
                           "mandate": "must", 
-                          "query": "@fields.instId == \"" + instance.id + "\"", 
+                          "query": "@fields.instId:\"" + instance.id + "\"", 
                           "type": "querystring"
                       }
                   }
@@ -399,18 +541,34 @@ app.propertyWidgets.KibanaLogs = (function() {
           "style": "light"
       }
   }
+
+  function renderButton(isDashboardItem, openAllHandler, openDropdownHandler) {
+    var group = $('<div class="btn-group">');
+    group.append(
+      $('<button class="btn">Open logs...</button>')
+      .click(openAllHandler));
+    if (!isDashboardItem) { // TODO: dashboads has `overflow: hidden` style, so dropdown can not be displayed
+      group.append(
+        $('<button class="btn dropdown-toggle" data-toggle="dropdown">&nbsp;<span class="caret"></span>&nbsp;</button>')
+        .click(openDropdownHandler));
+      group.append($('<ul class="dropdown-menu"></ul>').click(function(event) { event.stopPropagation();}));
+    } else {
+      group.find(".btn").addClass("btn-mini");    
+    }
+    return group;
+  }
   
   return {
     layout: 'inline',
     render: function(instance, returnValue, userValue) {
-      return $("<button class=\"btn\"/>").text("Open logs...").attr("href", "#").click(
-        onInstanceLinkClicked(instance, returnValue, userValue)
-      ).get(0);
+      return renderButton(false, 
+        onInstanceLinkClicked(instance, returnValue, userValue), 
+        onLogParametersClicked(instance, returnValue, userValue)).get(0);
     },
     renderSmall: function(instance, returnValue, userValue) {
-      return $("<button class=\"btn btn-mini\"/>").text("Open logs...").attr("href", "#").click(
-        onInstanceLinkClicked(instance, returnValue, userValue)
-      ).get(0);
+      return renderButton(true, 
+        onInstanceLinkClicked(instance, returnValue, userValue), 
+        onLogParametersClicked(instance, returnValue, userValue)).get(0);
     }
   }
 
