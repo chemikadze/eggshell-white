@@ -73,6 +73,11 @@ do-something:
 
 
 do-empty-chef-run:
+    parameters:
+        logger-cookbooks-version:
+          type: string
+          default: "stable"
+
     steps:
         - dummy-chefrun:
             action: chefsolo
