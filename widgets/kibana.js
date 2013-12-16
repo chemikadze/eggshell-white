@@ -142,9 +142,9 @@ app.propertyWidgets.KibanaLogs = (function() {
 
     function renderWaitingDropdown($el, vms) {
       $el.empty();
-      var target = $('<li style="width: 160; height: 100;"/>');
+      var target = $('<li style="width: 160px; height: 100px;"/>');
       $el.append(target);
-      var spinner = new Spinner({left: '55', top: '30'}).spin(target.get(0));
+      var spinner = new Spinner({left: '55px', top: '30px'}).spin(target.get(0));
     }
 
     function renderDropdown($ul, steps, vms) {    
@@ -550,7 +550,7 @@ app.propertyWidgets.KibanaLogs = (function() {
     if (!isDashboardItem) { // TODO: dashboads has `overflow: hidden` style, so dropdown can not be displayed
       group.append(
         $('<button class="btn dropdown-toggle" data-toggle="dropdown">&nbsp;<span class="caret"></span>&nbsp;</button>')
-        .click(openDropdownHandler));
+        .click(function() { if (!$(this).parent().hasClass("open")) openDropdownHandler.apply(this); }));
       group.append($('<ul class="dropdown-menu"></ul>').click(function(event) { event.stopPropagation();}));
     } else {
       group.find(".btn").addClass("btn-mini");    
