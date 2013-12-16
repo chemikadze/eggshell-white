@@ -1,5 +1,5 @@
 # requires environtment policy:
-#   logstash-host
+#   enable-logging.logstash-host
 
 launch:
     parameters:
