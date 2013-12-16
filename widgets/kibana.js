@@ -17,7 +17,7 @@ app.propertyWidgets.KibanaLogs = (function() {
     elasticsearchPort: 9200
   }
 
-  function elasticsearchSaveDashboard(client, dashboard, onSuccess) {
+  function elasticsearchSaveDashboard(client, dashboard, onSuccess, onFailure) {
       var save = jQuery.extend(true, {}, dashboard);
       var id = save.title;
 
@@ -29,14 +29,7 @@ app.propertyWidgets.KibanaLogs = (function() {
       });
 
       console.debug("Saving dashboard '" + dashboard.title + "'")
-      return request.doIndex(
-        // Success
-        function(result) {
-          console.log("Dashboard '" + save.title + "' saved")
-          onSuccess(result);
-          return result;
-        },
-        // Failure
+      return request.doIndex(onSuccess,      
         function() {
           alert("Can not connect to logging dashboard.")
           throw "Can not save dashboard '" + save.title + "'"
@@ -50,6 +43,7 @@ app.propertyWidgets.KibanaLogs = (function() {
       .query(client.QueryStringQuery("@fields.instId:\"" + instanceId + "\""))
       .size(0)
       .facet(client.TermsFacet("steps").script("_source[\"@fields\"][\"stepname\"]"))
+      .facet(client.TermsFacet("jobs").script("_source[\"@fields\"][\"jobId\"]"))
       .facet(client.TermsFacet("vms").script("_source[\"@source_host\"]"));
     
     request.doSearch(
@@ -66,7 +60,13 @@ app.propertyWidgets.KibanaLogs = (function() {
           vms.push(vmsTerms[i]['term']);
         }
 
-        onSuccess({'vms': vms, 'steps': steps});
+        var jobs = [];        
+        var jobTerms = r['facets']['jobs']['terms'];
+        for (var i = 0; i < jobTerms.length; ++i) {
+          jobs.push(jobTerms[i]['term']);
+        }
+
+        onSuccess({'vms': vms, 'steps': steps, 'jobs': jobs});
       },
       function() {
         alert("Can not get list of steps");
@@ -115,24 +115,23 @@ app.propertyWidgets.KibanaLogs = (function() {
       var ejsClient = getClient(elasticsearchUrl(returnValue.value));
 
       var $dropdown = $(ev.target).parent(".dropdown-menu");
-      var choosenSteps = [];
-      var choosenVms = [];      
-
-      var stepEls = $dropdown.find("[data-step-name]");
-      for (var i = 0; i < stepEls.length; ++i) {
-        if (stepEls[i].checked) {
-          choosenSteps.push(stepEls[i].getAttribute('data-step-name'));
+      function collectCheckboxes(dataAttribute) {
+        var choosenAttrs = [];
+        var els = $dropdown.find("[" + dataAttribute + "]");
+        for (var i = 0; i < els.length; ++i) {
+          if (els[i].checked) {
+            choosenAttrs.push(els[i].getAttribute(dataAttribute));
+          }
         }
+        return choosenAttrs;        
       }
 
-      var vmEls = $dropdown.find("[data-vm-addr]");
-      for (var i = 0; i < vmEls.length; ++i) {
-        if (vmEls[i].checked) {
-          choosenVms.push(vmEls[i].getAttribute('data-vm-addr'));
-        }
-      }      
+      var choosenSteps = collectCheckboxes('data-step-name');
+      var choosenVms = collectCheckboxes('data-vm-addr');
+      var choosenJobs = collectCheckboxes('data-job-id');
         
-      var dashboard = withFilters(dashboardForInstance(instance), filterVms(choosenVms).concat(filterSteps(choosenSteps)));
+      var dashboard = withFilters(dashboardForInstance(instance), 
+        filterVms(choosenVms).concat(filterSteps(choosenSteps)).concat(filterJobs(choosenJobs)));
       elasticsearchSaveDashboard(ejsClient, dashboard, function() {
         var url = parseUrl(returnValue.value); 
         url.hash = "#/dashboard/elasticsearch/" + dashboard.title;
@@ -147,22 +146,29 @@ app.propertyWidgets.KibanaLogs = (function() {
       var spinner = new Spinner({left: '55px', top: '30px'}).spin(target.get(0));
     }
 
-    function renderDropdown($ul, steps, vms) {    
+    function renderDropdown($ul, steps, vms, jobs) {    
       $ul.empty();
       $ul.attr("style", "padding: 10px");
       // $el = $("<li/>"); // breaks render in Chrome
       // $ul.append($el);
-      $el = $ul; 
+      $el = $ul;       
+
+      function addItems(attr, items) {
+        for (var i = 0; i < items.length; ++i) {
+          $item = $('<label class="checkbox"/>').append($('<input/>').attr('type', 'checkbox').attr(attr, items[i])).append(items[i]);
+          $el.append($item);
+        }        
+      }
+
+      $el.append('<h4>Jobs</h4>');
+      addItems('data-job-id', jobs);
+
       $el.append('<h4>Steps</h4>');
-      for (var i = 0; i < steps.length; ++i) {
-        $step = $('<label class="checkbox"/>').append($('<input/>').attr('type', 'checkbox').attr('data-step-name', steps[i])).append(steps[i]);
-        $el.append($step);
-      }
+      addItems('data-step-name', steps);      
+      
       $el.append('<h4>VMs</h4>');
-      for (var i = 0; i < vms.length; ++i) {
-        $vm = $('<label class="checkbox"/>').append($('<input/>').attr('type', 'checkbox').attr('data-vm-addr', vms[i])).append(vms[i]);
-        $el.append($vm);
-      }
+      addItems('data-vm-addr', vms);
+
       $el.append($('<a class="btn">Open</a>').click(onShowFilteredLogs))
     }
 
@@ -173,7 +179,7 @@ app.propertyWidgets.KibanaLogs = (function() {
 
       var ejsClient = getClient(elasticsearchUrl(returnValue.value));
       elasticsearchMetaForInstance(ejsClient, instance.id, function(meta) {
-        renderDropdown($dropdown, meta.steps, meta.vms)
+        renderDropdown($dropdown, meta.steps, meta.vms, meta.jobs)
       });
     }
   }
@@ -189,23 +195,22 @@ app.propertyWidgets.KibanaLogs = (function() {
     }
   }
 
-  function filterVms(vms) {
-    if (vms.length > 0) {
-      var queryString = vms.map(function(vmAddr) { return '@source_host:"' + vmAddr + '"' }).join(" OR ");
-      return [newFilter(queryString)];
-    } else {
-      return [];
+  function fieldFilter(fieldName) {
+    return function(values) {
+      if (values.length > 0) {
+        var queryString = values.map(function(value) { return fieldName + ':"' + value + '"' }).join(" OR ");
+        return [newFilter(queryString)];
+      } else {
+        return [];
+      }
     }
   }
 
-  function filterSteps(steps) {
-    if (steps.length > 0) {
-      var queryString = steps.map(function(step) { return '@fields.stepname:"' + step + '"' }).join(" OR ");
-      return [newFilter(queryString)];
-    } else {
-      return [];
-    }
-  }
+  var filterVms = fieldFilter('@source_host');
+
+  var filterSteps = fieldFilter('@fields.stepname');
+
+  var filterJobs = fieldFilter('@fields.jobId');
 
   function withFilters(dashboard, filters) {
     var dashFilters = dashboard['services']['filter'];
