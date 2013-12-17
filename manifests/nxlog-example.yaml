@@ -1,5 +1,6 @@
 # requires environtment policy:
-#   enable-logging.logstash-host
+#   action: .enable-logging 
+#   value:  logstash-host
 
 launch:
     parameters:
@@ -11,7 +12,7 @@ launch:
     steps:
 
         - provision-vm:
-              action: provisionVms 
+              action: .provisionVmsWithLogging
               phase: provision-vm
               parameters:                  
                   quantity: "{$.logger-num}"
@@ -21,21 +22,11 @@ launch:
                   imageId: us-east-1/ami-3ecd1e57
               output:
                 loggerips: ips
-
-        # after this step, all logs will be sent to Logstash
-        - enable-logging:
-              action: enable-logging
-              phase: enable-logging
-              precedingPhases: [ provision-vm ]
-              parameters:
-                vms: "{$.loggerips}"
-                vmIdentity: ec2-user  # should be same as in provision
-              output:
                 instance-dashboard: instance-dashboard
 
         - do-something:
               action: do-something
-              precedingPhases: [ provision-vm, enable-logging ]
+              precedingPhases: [ provision-vm ]
               parameters: {}
 
     return:
@@ -99,7 +90,7 @@ update-logger:
     steps:
 
       - enable-logging:
-          action: enable-logging
+          action: .enable-logging
           phase: enable-logging
           parameters:
             vms: "{$.vms}"
@@ -114,12 +105,147 @@ destroy:
             phase: destroy
 
 
+# OPTIONAL MACRO WRAPPING PROVISION
+.provisionVmsWithLogging:
+    parameters:
+        retryCount:
+          type: int
+          default: 0
+          min: 0
+        roleName:
+          type: string
+          default: "default"
+          length: {min: 1}
+        hardwareId:
+          type: string
+          length: {min: 1}
+        imageId:
+          type: string
+          default: ""
+        quantity:
+          type: int
+          min: 1
+          default: 1
+        targetQuantity:
+          type: int
+          default: -1
+        instanceId:
+          type: string
+          default: ""
+        staticIps:
+          default: ""
+        # This parameter is obsolete. Use "staticIps" instead.
+        ip:
+          type: string
+          default: ""
+        jcloudsProvider:
+          type: string
+          length: {min: 1}
+          default: "stub"
+        jcloudsEndpoint:
+          type: string
+          length: {min: 1}
+          default: "stub"
+        jcloudsIdentity:
+          type: string
+          length: {min: 1}
+          default: "stub"
+        jcloudsCredential:
+          type: string
+          length: {min: 1}
+          default: "stub"
+        jcloudsNodeNamePrefix:
+          type: string
+          length: {min: 1}
+          default: "GN"
+        jcloudsRegions:
+          type: string
+          default: ""
+        # parameters ec2SecurityGroup and subnetId are mutual exclusive.
+        # If subnetId is set ec2SecurityGroup is ignored.
+        ec2SecurityGroup:
+          type: string
+          default: "default"
+        subnetId:
+          type: string
+          default: ""
+        vmIdentity:
+          type: string
+          default: "root"
+        vmPassword:
+          type: string
+          default: ""
+        vmCredentialResource:
+          type: string
+          default: "/environments/undeploy-me.pem"
+          length: {min: 1}
+        useSecureCredentialsStore:
+          type: bool
+          default: false
+        providerSettings:
+          type: map
+          default: {}
+
+
+    steps:
+
+        - wrapped-provision-vms:
+              action: provisionVms
+              phase: provision              
+              parameters:     
+                  retryCount: "{$.retryCount}"           
+                  instanceId: "{$.instanceId}"
+                  ip: "{$.ip}"
+                  targetQuantity: "{$.targetQuantity}"
+                  imageId: "{$.imageId}"
+                  jcloudsRegions: "{$.jcloudsRegions}"
+                  subnetId: "{$.subnetId}"
+                  vmIdentity: "{$.vmIdentity}"
+                  hardwareId: "{$.hardwareId}"
+                  providerSettings: "{$.providerSettings}"
+                  jcloudsIdentity: "{$.jcloudsIdentity}"
+                  jcloudsCredential: "{$.jcloudsCredential}"
+                  vmPassword: "{$.vmPassword}"
+                  useSecureCredentialsStore: "{$.useSecureCredentialsStore}"
+                  jcloudsProvider: "{$.jcloudsProvider}"
+                  staticIps: "{$.staticIps}"
+                  jcloudsNodeNamePrefix: "{$.jcloudsNodeNamePrefix}"
+                  ec2SecurityGroup: "{$.ec2SecurityGroup}"
+                  vmCredentialResource: "{$.vmCredentialResource}"
+                  roleName: "{$.roleName}"
+                  jcloudsEndpoint: "{$.jcloudsEndpoint}"
+                  quantity: "{$.quantity}"
+              output:
+                ips: ips
+                vms: vms
+                privateips: privateips
+
+        - enable-logging:
+            action: .enable-logging
+            phase: enable-logging
+            precedingPhases: [ provision ]
+            parameters:
+              vms: "{$.privateips}"
+              vmIdentity: "{$.vmIdentity}"
+            output:
+              instance-dashboard: instance-dashboard
+
+    return:
+        ips:
+          value: "{$.ips}"
+        vms:
+          value: "{$.vms}"
+        privateips:
+          value: "{$.privateips}"
+        instance-dashboard:
+          value: "{$.instance-dashboard}"
+
 
 # THIS IS ACTUAL REUSABLE STEP FOR OTHER MANIFESTS
 # ADD TO YOUR MANIFEST
 #
 # TODO: should not be needed for hierarchical manifests
-enable-logging:
+.enable-logging:
     parameters:
         vms:
           description: "List of hosts to install and configure nxlog"
@@ -167,8 +293,8 @@ enable-logging:
                 nxlog:
                   user: "{$.vmIdentity}"
                   group: "{$.vmIdentity}"
-                  root: "/home/{$.vmIdentity}/.undeploy.me/nxlog"
-                  monitor_dir: "/home/{$.vmIdentity}/.undeploy.me"
+                  root: "/home/{$.vmIdentity}/.undeploy.me/nxlog"  # TODO fix root
+                  monitor_dir: "/home/{$.vmIdentity}/.undeploy.me" # TODO fix root
                   consumer: "{$.logstash-host}"
 
     return:
