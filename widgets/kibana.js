@@ -29,15 +29,10 @@ app.propertyWidgets.KibanaLogs = (function() {
       });
 
       console.debug("Saving dashboard '" + dashboard.title + "'")
-      return request.doIndex(onSuccess,      
-        function() {
-          alert("Can not connect to logging dashboard.")
-          throw "Can not save dashboard '" + save.title + "'"
-        }
-      );
+      return request.doIndex(onSuccess, onFailure);
   };
 
-  function elasticsearchMetaForInstance(client, instanceId, onSuccess) {
+  function elasticsearchMetaForInstance(client, instanceId, onSuccess, onFailure) {
     // TODO: this is heavy, should use simple facet without script
     var request = client.Request()
       .query(client.QueryStringQuery("@fields.instId:\"" + instanceId + "\""))
@@ -68,10 +63,7 @@ app.propertyWidgets.KibanaLogs = (function() {
 
         onSuccess({'vms': vms, 'steps': steps, 'jobs': jobs});
       },
-      function() {
-        alert("Can not get list of steps");
-        throw "Can not get list of steps";
-      })
+      onFailure)
   }
 
   function ejsFor(root) {
@@ -102,11 +94,16 @@ app.propertyWidgets.KibanaLogs = (function() {
       var ejsClient = getClient(elasticsearchUrl(returnValue.value));
       var dashboard = dashboardForInstance(instance)
 
-      elasticsearchSaveDashboard(ejsClient, dashboard, function() {
-        var url = parseUrl(returnValue.value); 
-        url.hash = "#/dashboard/elasticsearch/" + dashboard.title;
-        window.location = url
-      })
+      elasticsearchSaveDashboard(ejsClient, dashboard, 
+        function() {
+          var url = parseUrl(returnValue.value); 
+          url.hash = "#/dashboard/elasticsearch/" + dashboard.title;
+          window.location = url
+        },
+        function() {
+          alert("Can not connect to logging dashboard.")
+          throw "Can not save dashboard '" + save.title + "'"
+        })
     }
   }
 
@@ -132,22 +129,39 @@ app.propertyWidgets.KibanaLogs = (function() {
         
       var dashboard = withFilters(dashboardForInstance(instance), 
         filterVms(choosenVms).concat(filterSteps(choosenSteps)).concat(filterJobs(choosenJobs)));
-      elasticsearchSaveDashboard(ejsClient, dashboard, function() {
-        var url = parseUrl(returnValue.value); 
-        url.hash = "#/dashboard/elasticsearch/" + dashboard.title;
-        window.location = url
-      })
+      elasticsearchSaveDashboard(ejsClient, dashboard, 
+        function() {
+          var url = parseUrl(returnValue.value); 
+          url.hash = "#/dashboard/elasticsearch/" + dashboard.title;
+          window.location = url
+        },
+        function() {
+          renderFailedDropdown($dropdown, 
+            "Can not upload dashboard settings to logging dashboard. " + 
+            "Check that logger instance with address " + parseUrl(returnValue.value).host + " is running.");
+        })
+    }
+
+    function clearDropdown($el) {
+      $el.empty();
+      $el.removeClass("alert");
     }
 
     function renderWaitingDropdown($el, vms) {
-      $el.empty();
+      clearDropdown($el);
       var target = $('<li style="width: 160px; height: 100px;"/>');
       $el.append(target);
       var spinner = new Spinner({left: '55px', top: '30px'}).spin(target.get(0));
     }
 
+    function renderFailedDropdown($el, message) {
+      clearDropdown($el);
+      $el.addClass("alert");
+      $el.append($('<li style="word-break: break-word;">' + message + '</li>'));
+    }
+
     function renderDropdown($ul, steps, vms, jobs) {    
-      $ul.empty();
+      clearDropdown($el);
       $ul.attr("style", "padding: 10px");
       // $el = $("<li/>"); // breaks render in Chrome
       // $ul.append($el);
@@ -178,9 +192,15 @@ app.propertyWidgets.KibanaLogs = (function() {
       renderWaitingDropdown($dropdown);
 
       var ejsClient = getClient(elasticsearchUrl(returnValue.value));
-      elasticsearchMetaForInstance(ejsClient, instance.id, function(meta) {
-        renderDropdown($dropdown, meta.steps, meta.vms, meta.jobs)
-      });
+      elasticsearchMetaForInstance(ejsClient, instance.id, 
+        function(meta) {
+          renderDropdown($dropdown, meta.steps, meta.vms, meta.jobs)
+        },
+        function() {
+          renderFailedDropdown($dropdown, 
+            "Can not load information about stored logs. " + 
+            "Check that logger instance with address " + parseUrl(returnValue.value).host + " is running and logs are not empty.");
+        });
     }
   }
 
