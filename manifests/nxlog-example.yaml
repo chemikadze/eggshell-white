@@ -301,4 +301,4 @@ destroy:
 
     return:
         instance-dashboard:
-          value: "http://{$.logstash-host}/kibana-master/src/index.html#/dashboard/file/logstash.json"
+          value: "http://{$.logstash-host}/kibana/index.html#/dashboard/file/logstash.json"
