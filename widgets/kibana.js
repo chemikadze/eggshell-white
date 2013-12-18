@@ -515,47 +515,58 @@ app.propertyWidgets.KibanaLogs = (function() {
                       1, 
                       2, 
                       3, 
-                      4
+                      4,
+                      5
                   ], 
                   "ids": [
                       1, 
                       2, 
                       3, 
-                      4
+                      4,
+                      5
                   ], 
                   "list": {
                       "1": {
                           "alias": "", 
-                          "color": "#E24D42", 
+                          "color": "#FF0000", 
                           "enable": true, 
                           "id": 1, 
+                          "pin": false, 
+                          "query": "@severity:FATAL", 
+                          "type": "lucene"
+                      },
+                      "2": {
+                          "alias": "", 
+                          "color": "#E24D42", 
+                          "enable": true, 
+                          "id": 2, 
                           "pin": false, 
                           "query": "@severity:ERROR", 
                           "type": "lucene"
                       }, 
-                      "2": {
+                      "3": {
                           "alias": "", 
                           "color": "#EAB839", 
                           "enable": true, 
-                          "id": 2, 
+                          "id": 3, 
                           "pin": false, 
                           "query": "@severity:WARN*", 
                           "type": "lucene"
                       }, 
-                      "3": {
+                      "4": {
                           "alias": "", 
                           "color": "#7EB26D", 
                           "enable": true, 
-                          "id": 3, 
+                          "id": 4, 
                           "pin": false, 
                           "query": "@severity:INFO", 
                           "type": "lucene"
                       }, 
-                      "4": {
+                      "5": {
                           "alias": "", 
                           "color": "#6ED0E0", 
                           "enable": true, 
-                          "id": 4, 
+                          "id": 5, 
                           "pin": false, 
                           "query": "@severity:DEBUG", 
                           "type": "lucene"
