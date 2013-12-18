@@ -225,7 +225,8 @@ destroy:
             phase: enable-logging
             precedingPhases: [ provision ]
             parameters:
-              vms: "{$.privateips}"
+              # vms: "{$.privateips}" # TODO: for private clouds
+              vms: "{$.ips}"
               vmIdentity: "{$.vmIdentity}"
             output:
               instance-dashboard: instance-dashboard
@@ -282,10 +283,11 @@ destroy:
                 staticIps: "{$.vms}"
 
         - start-logger:
-            action: chefsolo
+            action: chefrun
             phase: start-logger
             precedingPhases: [ populate-role ]
             parameters:
+              isSolo: true
               roles: [ qubell-logger-source ]
               recipeUrl: "http://qubell-logging.s3.amazonaws.com/{$.logger-cookbooks-version}/nxlog.tar.gz"
               runList: [ "recipe[nxlog::logger]" ]
