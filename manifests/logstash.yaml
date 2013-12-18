@@ -12,8 +12,8 @@ launch:
     steps:
         - init-consumer:
               action: provisionVms
+              phase: "init-consumer"
               parameters:
-                  phase: "init-consumer"
                   hardwareId: "m1.small"
                   roleName: consumer
                   vmIdentity: "{$.vm-user}"
