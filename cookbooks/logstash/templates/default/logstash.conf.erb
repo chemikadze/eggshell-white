@@ -38,7 +38,7 @@ filter {
       type => "nxlog"
       tags => [ "unprocessed" ]
       remove_tag => [ "unprocessed" ]
-      match => [ "Message", ".undeploy.me/%{DATA}/%{DATA}\.%{DATA}\.%{DATA}/%{GREEDYDATA}:%{NUMBER}: %{DATA:Severity}: %{GREEDYDATA:MessageTxt}" ]
+      match => [ "Message", "[/\w_%!$@:.,-]+:%{NUMBER}: %{DATA:Severity}: %{GREEDYDATA:MessageTxt}" ]
   }  
 
   grok { # other messages from stderr
