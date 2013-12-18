@@ -1,0 +1,1 @@
+default['kibana']['install_root']        = '/var/lib/kibana'
