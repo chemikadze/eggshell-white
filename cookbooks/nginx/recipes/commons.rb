@@ -1,6 +1,6 @@
 #
 # Cookbook Name:: nginx
-# Recipe:: default
+# Recipe:: commons
 #
 # Author:: AJ Christensen <aj@junglist.gen.nz>
 #
@@ -19,14 +19,6 @@
 # limitations under the License.
 #
 
-case node['nginx']['install_method']
-when 'source'
-  include_recipe 'nginx::source'
-when 'package'
-  include_recipe 'nginx::package'
-end
-
-service 'nginx' do
-  supports :status => true, :restart => true, :reload => true
-  action   :start
-end
+include_recipe 'nginx::commons_dir'
+include_recipe 'nginx::commons_script'
+include_recipe 'nginx::commons_conf'

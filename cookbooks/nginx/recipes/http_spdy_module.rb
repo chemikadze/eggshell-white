@@ -1,10 +1,10 @@
 #
 # Cookbook Name:: nginx
-# Recipe:: default
+# Recipe:: http_spdy_module
 #
-# Author:: AJ Christensen <aj@junglist.gen.nz>
+# Author:: Christoph Buente (<christoph@meinekleinefarm.org>)
 #
-# Copyright 2008-2013, Opscode, Inc.
+# Copyright 2013, MeinekleineFarm.org
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,14 +19,5 @@
 # limitations under the License.
 #
 
-case node['nginx']['install_method']
-when 'source'
-  include_recipe 'nginx::source'
-when 'package'
-  include_recipe 'nginx::package'
-end
-
-service 'nginx' do
-  supports :status => true, :restart => true, :reload => true
-  action   :start
-end
+node.run_state['nginx_configure_flags'] =
+  node.run_state['nginx_configure_flags'] | ['--with-http_spdy_module']

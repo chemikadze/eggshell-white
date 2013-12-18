@@ -1,6 +1,6 @@
 #
 # Cookbook Name:: nginx
-# Recipe:: default
+# Recipe:: common/dir
 #
 # Author:: AJ Christensen <aj@junglist.gen.nz>
 #
@@ -19,14 +19,31 @@
 # limitations under the License.
 #
 
-case node['nginx']['install_method']
-when 'source'
-  include_recipe 'nginx::source'
-when 'package'
-  include_recipe 'nginx::package'
+directory node['nginx']['dir'] do
+  owner     'root'
+  group     'root'
+  mode      '0755'
+  recursive true
 end
 
-service 'nginx' do
-  supports :status => true, :restart => true, :reload => true
-  action   :start
+directory node['nginx']['log_dir'] do
+  mode      '0755'
+  owner     node['nginx']['user']
+  action    :create
+  recursive true
+end
+
+directory File.dirname(node['nginx']['pid']) do
+  owner     'root'
+  group     'root'
+  mode      '0755'
+  recursive true
+end
+
+%w[sites-available sites-enabled conf.d].each do |leaf|
+  directory File.join(node['nginx']['dir'], leaf) do
+    owner 'root'
+    group 'root'
+    mode  '0755'
+  end
 end
