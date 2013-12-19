@@ -16,6 +16,14 @@ template "#{node['kibana']['install_root']}/kibana-master/src/app/dashboards/log
   action :nothing
 end
 
+template "#{node['kibana']['install_root']}/kibana-master/src/config.js" do
+  user "root"
+  group "root"
+  mode "0644"
+  source "kibana-config.js.erb"
+  action :nothing
+end
+
 bash "install kibana" do
   user "root"
   group "root"
@@ -24,6 +32,7 @@ bash "install kibana" do
   EOC
   action :nothing
   notifies :create, "template[#{node['kibana']['install_root']}/kibana-master/src/app/dashboards/logstash.json]", :immediately
+  notifies :create, "template[#{node['kibana']['install_root']}/kibana-master/src/config.js]", :immediately
 end
 
 remote_file "#{Chef::Config[:file_cache_path]}/kibana.tar.gz" do

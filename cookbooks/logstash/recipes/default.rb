@@ -2,6 +2,7 @@
 
 include_recipe "java"
 include_recipe "logstash::kibana"
+include_recipe "logstash::elasticsearch_site"
 
 rootdir = "/var/lib/logstash"
 
@@ -49,3 +50,5 @@ bash "start logstash" do
     sleep 300
   EOC
 end
+
+

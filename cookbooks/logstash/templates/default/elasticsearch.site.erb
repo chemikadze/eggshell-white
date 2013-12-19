@@ -1,0 +1,30 @@
+# proxy elasticsearch requests through SSL
+
+server {
+   listen       <%= node['elasticsearch']['proxy_port'] %>;
+   server_name  _;
+
+   ssl                  on;
+   ssl_certificate      <%= node['elasticsearch']['ssl_certificate'] %>;
+   ssl_certificate_key  <%= node['elasticsearch']['ssl_certificate_key'] %>;
+   ssl_session_timeout  5m;
+   ssl_protocols  SSLv2 SSLv3 TLSv1;
+   ssl_ciphers  ALL:!ADH:!EXPORT56:RC4+RSA:+HIGH:+MEDIUM:+LOW:+SSLv2:+EXP;
+   ssl_prefer_server_ciphers   on;
+
+   location / {
+
+    if ($request_method = OPTIONS ) {
+      add_header Content-Length 0;
+      add_header Content-Type text/plain;
+      add_header 'Access-Control-Allow-Methods' 'GET, POST, OPTIONS, PUT';
+      add_header 'Access-Control-Allow-Origin' "$http_origin";
+      add_header 'Access-Control-Allow-Headers' 'Authorization,Content-Type,Accept,Origin,User-Agent,DNT,Cache-Control,X-Mx-ReqToken,Keep-Alive,X-Requested-With,If-Modified-Since';
+      return 200;
+    }
+
+    proxy_pass       http://localhost:9200;
+    proxy_set_header Host      $host;
+    proxy_set_header X-Real-IP $remote_addr;
+  }
+}

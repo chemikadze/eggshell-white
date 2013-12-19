@@ -27,8 +27,8 @@
       ],
       "list": {
         "0": {
-          "from": "2013-07-30T18:58:13.977Z",
-          "to": "2013-07-30T19:58:13.977Z",
+          "from": "now-1d",
+          "to": "now",
           "field": "@timestamp",
           "type": "time",
           "mandate": "must",

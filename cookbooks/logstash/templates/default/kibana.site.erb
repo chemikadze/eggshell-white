@@ -1,11 +1,34 @@
-#
-# The default server
-#
-server {
-    listen       80 default_server;
-    server_name  _;
+# static kibana pages through SSL with HTTP->HTTPS redirect
 
+<% if node['kibana']['serve_ssl'] -%>
+
+server { 
+  listen 80; 
+  server_name _; 
+  
+  rewrite ^(.*)$ https://$host$1 permanent; 
+}
+
+<% end -%>
+
+
+server {
+    server_name  _;
     #access_log  logs/host.access.log  main;
+
+    <% if node['kibana']['serve_ssl'] -%>
+    listen       443;
+
+    ssl                  on;
+    ssl_certificate      <%= node['kibana']['ssl_certificate'] %>;
+    ssl_certificate_key  <%= node['kibana']['ssl_certificate_key'] %>;
+    ssl_session_timeout  5m;
+    ssl_protocols  SSLv2 SSLv3 TLSv1;
+    ssl_ciphers  ALL:!ADH:!EXPORT56:RC4+RSA:+HIGH:+MEDIUM:+LOW:+SSLv2:+EXP;
+    ssl_prefer_server_ciphers   on;
+    <% else -%>
+    listen       80;
+    <% end -%>
 
     location = / {
         rewrite ^/$ /kibana/#/dashboard/file/logstash.json redirect;
@@ -26,8 +49,6 @@ server {
         root   /usr/share/nginx/html;
     }
 
-    # redirect server error pages to the static page /50x.html
-    #
     error_page   500 502 503 504  /50x.html;
     location = /50x.html {
         root   /usr/share/nginx/html;
