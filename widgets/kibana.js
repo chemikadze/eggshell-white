@@ -85,7 +85,11 @@ app.propertyWidgets.KibanaLogs = (function() {
 
   function elasticsearchUrl(kibanaUrl) {
     var url = parseUrl(kibanaUrl); 
-    var root = url.protocol + "//" + url.hostname + ":" + config.elasticsearchPort;
+    var port = config.elasticsearchPort;
+    if (url.protocol == "https:") {
+      port += 1;
+    }
+    var root = url.protocol + "//" + url.hostname + ":" + port;
     return root;
   }
 
@@ -102,10 +106,18 @@ app.propertyWidgets.KibanaLogs = (function() {
         },
         function() {
           alert("Can not connect to logging dashboard.")
-          throw "Can not save dashboard '" + save.title + "'"
+          throw "Can not save dashboard '" + dashboard.title + "'"
         })
     }
   }
+
+  // TODO move to css
+  var dropdownStyle = "display: inline; padding: 0px; background-color: #fcf8e3; color: #805813;"
+
+  var mozillaWarning = 
+    'If you are using Firefox, either enable mixed content on this page by clicking ' +
+    '<img height="15" width="15" src="http://qubell-logging.s3.amazonaws.com/ff-shield.png" >&nbsp;icon in address bar, ' +
+    'or disable mixed content blocking by disabling <tt>block_active_content</tt> flag in <tt>about:config</tt>.';
 
   function onLogParametersClicked(instance, returnValue, userValue) {
     function onShowFilteredLogs(ev) {
@@ -136,9 +148,15 @@ app.propertyWidgets.KibanaLogs = (function() {
           window.location = url
         },
         function() {
-          renderFailedDropdown($dropdown, 
-            "Can not upload dashboard settings to logging dashboard. " + 
-            "Check that logger instance with address " + parseUrl(returnValue.value).host + " is running.");
+          var msg = 
+            'Can not upload dashboard settings to logging dashboard. ' + 
+            'Check that logger instance with address ' + 
+            '<a style="' + dropdownStyle + '" href="' + parseUrl(returnValue.value).host + '">' + parseUrl(returnValue.value).host + '</a>' + 
+            ' is running.';
+          if ($.browser.mozilla) {
+            msg += '<br/><br/>' + mozillaWarning;
+          }
+          renderFailedDropdown($dropdown, msg);
         })
     }
 
@@ -197,9 +215,15 @@ app.propertyWidgets.KibanaLogs = (function() {
           renderDropdown($dropdown, meta.steps, meta.vms, meta.jobs)
         },
         function() {
-          renderFailedDropdown($dropdown, 
-            "Can not load information about stored logs. " + 
-            "Check that logger instance with address " + parseUrl(returnValue.value).host + " is running and logs are not empty.");
+          var msg = 
+            'Can not load information about stored logs. ' + 
+            'Check that logger instance with address ' + 
+            '<a style="' + dropdownStyle + '" href="http://' + parseUrl(returnValue.value).host + '">' + parseUrl(returnValue.value).host + '</a>' + 
+            ' is running.'
+          if ($.browser.mozilla) {
+            msg += '<br/><br/>' + mozillaWarning;
+          }
+          renderFailedDropdown($dropdown, msg);
         });
     }
   }
