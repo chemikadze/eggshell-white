@@ -3,10 +3,18 @@
 include_recipe "java"
 include_recipe "logstash::kibana"
 include_recipe "logstash::elasticsearch_site"
+include_recipe "service_factory"
 
 rootdir = "/var/lib/logstash"
 
 directory rootdir do
+  owner node.logstash.user
+  group node.logstash.group
+  mode "0755"
+  action :create
+end
+
+directory "/data" do
   owner node.logstash.user
   group node.logstash.group
   mode "0755"
@@ -39,16 +47,17 @@ template "#{rootdir}/logstash.conf" do
   source "logstash.conf.erb"
 end
 
-bash "start logstash" do
-  user node.logstash.user
-  group node.logstash.group
-  cwd "/tmp"
-  code <<-EOC
-    killall java
-    /usr/bin/setsid /usr/bin/nohup java -jar #{rootdir}/logstash.jar agent -f #{rootdir}/logstash.conf &>/tmp/logstash.log &
-    # Pause to allow logstash to start and initialize, it is really slow
-    sleep 300
-  EOC
+service_factory "logstash" do
+  service_desc "Lostash and Elasticsearch"
+  exec "/usr/bin/java"
+  exec_args [
+    "-jar #{rootdir}/logstash.jar",
+    "agent",
+    "-f #{rootdir}/logstash.conf"
+  ]
+  after_start "sleep 300" # logstash startup is very slow
+  run_user node.logstash.user
+  run_group node.logstash.group
+  action [:create, :enable, :start]
 end
-
 
