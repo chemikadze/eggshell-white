@@ -5,7 +5,7 @@ upload_as_latest: all
 .PHONY: upload_latest
 
 upload_as_stable: all
-	./upload-assets.sh stable	
+	./upload-assets.sh stable
 .PHONY: upload_stable
 
 upload_new_version: all
@@ -28,7 +28,7 @@ target/kibana-all.js: $(shell find widgets -type f -name '*.js')
 		cat elastic.js elastic-jquery-client.js kibana.js > ../target/kibana-all.js
 
 target/logstash.tar.gz: $(shell find cookbooks -type f)
-	tar -czvpf target/logstash.tar.gz cookbooks/java cookbooks/ohai cookbooks/logstash cookbooks/nginx cookbooks/yum
+	tar -czvpf target/logstash.tar.gz cookbooks/java cookbooks/ohai cookbooks/logstash cookbooks/nginx cookbooks/yum cookbooks/service_factory cookbooks/resource_masher cookbooks/run_action_now cookbooks/unix_bin
 
 target/nxlog.tar.gz: $(shell find cookbooks -type f)
 	tar -czvpf target/nxlog.tar.gz cookbooks/nxlog
