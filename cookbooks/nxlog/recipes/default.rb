@@ -56,14 +56,14 @@ end
 
 package "nxlog-ce"
 
-bash "nxlog restart" do
-  user node.nxlog.user
-  group node.nxlog.group
-  cwd node.nxlog.root
-  code <<-EOC
-    killall -9 nxlog
-    nxlog -c #{::File.join(node.nxlog.root, "nxlog.conf")}
-  EOC
-  action :nothing
+service_factory "nxlog" do
+  service_desc "NXLog"
+  exec "/usr/bin/nxlog"
+  exec_args [
+    "-c #{::File.join(node.nxlog.root, "nxlog.conf")}"
+  ]
+  run_user node.nxlog.user
+  run_group node.nxlog.group
+  action :create
 end
 

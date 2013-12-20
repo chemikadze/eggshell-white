@@ -5,5 +5,6 @@ template ::File.join(node.nxlog.root, "nxlog.conf") do
   group node.nxlog.group
   mode "0644"
   source "nxlog.conf.erb"
-  notifies :run, "bash[nxlog restart]"
+  notifies :enable, "service_factory[nxlog]"
+  notifies :start, "service_factory[nxlog]"
 end

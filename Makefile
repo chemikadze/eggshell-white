@@ -27,11 +27,13 @@ target/kibana-all.js: $(shell find widgets -type f -name '*.js')
 		ls; \
 		cat elastic.js elastic-jquery-client.js kibana.js > ../target/kibana-all.js
 
+SERVICE_FACTORY=cookbooks/resource_masher cookbooks/run_action_now cookbooks/unix_bin cookbooks/nginx cookbooks/service_factory
+
 target/logstash.tar.gz: $(shell find cookbooks -type f)
-	tar -czvpf target/logstash.tar.gz cookbooks/java cookbooks/ohai cookbooks/logstash cookbooks/nginx cookbooks/yum cookbooks/service_factory cookbooks/resource_masher cookbooks/run_action_now cookbooks/unix_bin
+	tar -czvpf target/logstash.tar.gz cookbooks/java cookbooks/ohai cookbooks/yum ${SERVICE_FACTORY} cookbooks/logstash
 
 target/nxlog.tar.gz: $(shell find cookbooks -type f)
-	tar -czvpf target/nxlog.tar.gz cookbooks/nxlog
+	tar -czvpf target/nxlog.tar.gz ${SERVICE_FACTORY} cookbooks/nxlog
 
 clean:
 	rm -rf target
