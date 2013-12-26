@@ -33,7 +33,7 @@ target/logstash.tar.gz: $(shell find cookbooks -type f)
 	tar -czvpf target/logstash.tar.gz cookbooks/java cookbooks/ohai cookbooks/yum ${SERVICE_FACTORY} cookbooks/logstash
 
 target/nxlog.tar.gz: $(shell find cookbooks -type f)
-	tar -czvpf target/nxlog.tar.gz ${SERVICE_FACTORY} cookbooks/nxlog
+	tar -czvpf target/nxlog.tar.gz ${SERVICE_FACTORY} cookbooks/nxlog cookbooks/qubell_logging
 
 clean:
 	rm -rf target

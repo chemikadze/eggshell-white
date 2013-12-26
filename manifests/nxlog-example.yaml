@@ -1,5 +1,5 @@
 # requires environtment policy:
-#   action: .enable-logging 
+#   action: .enable-logging
 #   value:  logstash-host
 
 launch:
@@ -14,7 +14,7 @@ launch:
         - provision-vm:
               action: .provisionVmsWithLogging
               phase: provision-vm
-              parameters:                  
+              parameters:
                   quantity: "{$.logger-num}"
                   hardwareId: "m1.small"
                   roleName: logger
@@ -31,7 +31,7 @@ launch:
 
     return:
         vms:
-            description: VMs 
+            description: VMs
             value: "{$.loggerips}"
         # ADD TO YOUR MANIFEST this return value should present to get rendered widget with link
         kibana-instance-dashboard:
@@ -94,7 +94,7 @@ update-logger:
           phase: enable-logging
           parameters:
             vms: "{$.vms}"
-            vmIdentity: ec2-user 
+            vmIdentity: ec2-user
 
 
 destroy:
@@ -191,9 +191,9 @@ destroy:
 
         - wrapped-provision-vms:
               action: provisionVms
-              phase: provision              
-              parameters:     
-                  retryCount: "{$.retryCount}"           
+              phase: provision
+              parameters:
+                  retryCount: "{$.retryCount}"
                   instanceId: "{$.instanceId}"
                   ip: "{$.ip}"
                   targetQuantity: "{$.targetQuantity}"
@@ -217,7 +217,6 @@ destroy:
                   quantity: "{$.quantity}"
               output:
                 ips: ips
-                vms: vms
                 privateips: privateips
 
         - enable-logging:
@@ -234,8 +233,6 @@ destroy:
     return:
         ips:
           value: "{$.ips}"
-        vms:
-          value: "{$.vms}"
         privateips:
           value: "{$.privateips}"
         instance-dashboard:
@@ -290,13 +287,10 @@ destroy:
               isSolo: true
               roles: [ qubell-logger-source ]
               recipeUrl: "http://qubell-logging.s3.amazonaws.com/{$.logger-cookbooks-version}/nxlog.tar.gz"
-              runList: [ "recipe[nxlog::logger]" ]
+              runList: [ "recipe[qubell_logging]" ]
               jattrs:
-                nxlog:
+                qubell_logging:
                   user: "{$.vmIdentity}"
-                  group: "{$.vmIdentity}"
-                  root: "/home/{$.vmIdentity}/.undeploy.me/nxlog"  # TODO fix root
-                  monitor_dir: "/home/{$.vmIdentity}/.undeploy.me" # TODO fix root
                   consumer: "{$.logstash-host}"
 
     return:
