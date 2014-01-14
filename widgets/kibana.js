@@ -1,13 +1,13 @@
 oldGetWidgetName = app.propertyWidgets.getWidgetName
 
 app.propertyWidgets.getWidgetName = function(instance, returnValue, userValue) {
-  if (returnValue.id === "kibana-instance-dashboard") {
+  if (returnValue.id.indexOf && returnValue.id.indexOf("kibana-instance-dashboard") >= 0) {
     return 'KibanaLogs'
   } else if (oldGetWidgetName) {
     return oldGetWidgetName(instance, returnValue, userValue)
   } else {
     return 'Default';
-  }         
+  }
 }
 
 app.propertyWidgets.KibanaLogs = (function() {
@@ -40,22 +40,22 @@ app.propertyWidgets.KibanaLogs = (function() {
       .facet(client.TermsFacet("steps").script("_source[\"@fields\"][\"stepname\"]"))
       .facet(client.TermsFacet("jobs").script("_source[\"@fields\"][\"jobId\"]"))
       .facet(client.TermsFacet("vms").script("_source[\"@source_host\"]"));
-    
+
     request.doSearch(
       function(r) {
-        var steps = [];        
+        var steps = [];
         var stepTerms = r['facets']['steps']['terms'];
         for (var i = 0; i < stepTerms.length; ++i) {
           steps.push(stepTerms[i]['term']);
         }
 
-        var vms = [];        
+        var vms = [];
         var vmsTerms = r['facets']['vms']['terms'];
         for (var i = 0; i < vmsTerms.length; ++i) {
           vms.push(vmsTerms[i]['term']);
         }
 
-        var jobs = [];        
+        var jobs = [];
         var jobTerms = r['facets']['jobs']['terms'];
         for (var i = 0; i < jobTerms.length; ++i) {
           jobs.push(jobTerms[i]['term']);
@@ -81,10 +81,10 @@ app.propertyWidgets.KibanaLogs = (function() {
     var parser = document.createElement('a');
     parser.href = url;
     return parser;
-  }  
+  }
 
   function elasticsearchUrl(kibanaUrl) {
-    var url = parseUrl(kibanaUrl); 
+    var url = parseUrl(kibanaUrl);
     var port = config.elasticsearchPort;
     if (url.protocol == "https:") {
       port += 1;
@@ -94,13 +94,13 @@ app.propertyWidgets.KibanaLogs = (function() {
   }
 
   function onInstanceLinkClicked(instance, returnValue, userValue) {
-    return function() {      
+    return function() {
       var ejsClient = getClient(elasticsearchUrl(returnValue.value));
       var dashboard = dashboardForInstance(instance)
 
-      elasticsearchSaveDashboard(ejsClient, dashboard, 
+      elasticsearchSaveDashboard(ejsClient, dashboard,
         function() {
-          var url = parseUrl(returnValue.value); 
+          var url = parseUrl(returnValue.value);
           url.hash = "#/dashboard/elasticsearch/" + dashboard.title;
           window.location = url
         },
@@ -114,7 +114,7 @@ app.propertyWidgets.KibanaLogs = (function() {
   // TODO move to css
   var dropdownStyle = "display: inline; padding: 0px; background-color: #fcf8e3; color: #805813;"
 
-  var mozillaWarning = 
+  var mozillaWarning =
     'If you are using Firefox, either enable mixed content on this page by clicking ' +
     '<img height="15" width="15" src="http://qubell-logging.s3.amazonaws.com/ff-shield.png" >&nbsp;icon in address bar, ' +
     'or disable mixed content blocking by disabling <tt>block_active_content</tt> flag in <tt>about:config</tt>.';
@@ -132,26 +132,26 @@ app.propertyWidgets.KibanaLogs = (function() {
             choosenAttrs.push(els[i].getAttribute(dataAttribute));
           }
         }
-        return choosenAttrs;        
+        return choosenAttrs;
       }
 
       var choosenSteps = collectCheckboxes('data-step-name');
       var choosenVms = collectCheckboxes('data-vm-addr');
       var choosenJobs = collectCheckboxes('data-job-id');
-        
-      var dashboard = withFilters(dashboardForInstance(instance), 
+
+      var dashboard = withFilters(dashboardForInstance(instance),
         filterVms(choosenVms).concat(filterSteps(choosenSteps)).concat(filterJobs(choosenJobs)));
-      elasticsearchSaveDashboard(ejsClient, dashboard, 
+      elasticsearchSaveDashboard(ejsClient, dashboard,
         function() {
-          var url = parseUrl(returnValue.value); 
+          var url = parseUrl(returnValue.value);
           url.hash = "#/dashboard/elasticsearch/" + dashboard.title;
           window.location = url
         },
         function() {
-          var msg = 
-            'Can not upload dashboard settings to logging dashboard. ' + 
-            'Check that logger instance with address ' + 
-            '<a style="' + dropdownStyle + '" href="' + parseUrl(returnValue.value).host + '">' + parseUrl(returnValue.value).host + '</a>' + 
+          var msg =
+            'Can not upload dashboard settings to logging dashboard. ' +
+            'Check that logger instance with address ' +
+            '<a style="' + dropdownStyle + '" href="' + parseUrl(returnValue.value).host + '">' + parseUrl(returnValue.value).host + '</a>' +
             ' is running.';
           if ($.browser.mozilla) {
             msg += '<br/><br/>' + mozillaWarning;
@@ -178,26 +178,26 @@ app.propertyWidgets.KibanaLogs = (function() {
       $el.append($('<li style="word-break: break-word;">' + message + '</li>'));
     }
 
-    function renderDropdown($ul, steps, vms, jobs) {    
+    function renderDropdown($ul, steps, vms, jobs) {
       clearDropdown($ul);
       $ul.attr("style", "padding: 10px");
       // $el = $("<li/>"); // breaks render in Chrome
       // $ul.append($el);
-      $el = $ul;       
+      $el = $ul;
 
       function addItems(attr, items) {
         for (var i = 0; i < items.length; ++i) {
           $item = $('<label class="checkbox"/>').append($('<input/>').attr('type', 'checkbox').attr(attr, items[i])).append(items[i]);
           $el.append($item);
-        }        
+        }
       }
 
       $el.append('<h4>Jobs</h4>');
       addItems('data-job-id', jobs);
 
       $el.append('<h4>Steps</h4>');
-      addItems('data-step-name', steps);      
-      
+      addItems('data-step-name', steps);
+
       $el.append('<h4>VMs</h4>');
       addItems('data-vm-addr', vms);
 
@@ -206,19 +206,19 @@ app.propertyWidgets.KibanaLogs = (function() {
 
     return function() {
       var $el = $(this);
-      var $dropdown = $el.siblings(".dropdown-menu"); 
+      var $dropdown = $el.siblings(".dropdown-menu");
       renderWaitingDropdown($dropdown);
 
       var ejsClient = getClient(elasticsearchUrl(returnValue.value));
-      elasticsearchMetaForInstance(ejsClient, instance.id, 
+      elasticsearchMetaForInstance(ejsClient, instance.id,
         function(meta) {
           renderDropdown($dropdown, meta.steps, meta.vms, meta.jobs)
         },
         function() {
-          var msg = 
-            'Can not load information about stored logs. ' + 
-            'Check that logger instance with address ' + 
-            '<a style="' + dropdownStyle + '" href="http://' + parseUrl(returnValue.value).host + '">' + parseUrl(returnValue.value).host + '</a>' + 
+          var msg =
+            'Can not load information about stored logs. ' +
+            'Check that logger instance with address ' +
+            '<a style="' + dropdownStyle + '" href="http://' + parseUrl(returnValue.value).host + '">' + parseUrl(returnValue.value).host + '</a>' +
             ' is running.'
           if ($.browser.mozilla) {
             msg += '<br/><br/>' + mozillaWarning;
@@ -230,11 +230,11 @@ app.propertyWidgets.KibanaLogs = (function() {
 
   function newFilter(queryString) {
     return {
-      "active": true, 
-      "alias": "", 
-      "id": -1, 
-      "mandate": "must", 
-      "query": queryString, 
+      "active": true,
+      "alias": "",
+      "id": -1,
+      "mandate": "must",
+      "query": queryString,
       "type": "querystring"
     }
   }
@@ -272,332 +272,332 @@ app.propertyWidgets.KibanaLogs = (function() {
   function dashboardForInstance(instance) {
     return {
           "title": "Logs for '" + instance.name + "'",
-          "editable": true, 
-          "failover": false, 
+          "editable": true,
+          "failover": false,
           "index": {
-              "default": "NO_TIME_FILTER_OR_INDEX_PATTERN_NOT_MATCHED", 
-              "interval": "hour", 
-              "pattern": "[logstash-]YYYY.MM.DD.HH", 
+              "default": "NO_TIME_FILTER_OR_INDEX_PATTERN_NOT_MATCHED",
+              "interval": "hour",
+              "pattern": "[logstash-]YYYY.MM.DD.HH",
               "warm_fields": true
-          }, 
+          },
           "loader": {
-              "hide": false, 
-              "load_elasticsearch": true, 
-              "load_elasticsearch_size": 20, 
-              "load_gist": false, 
-              "load_local": false, 
-              "save_default": false, 
-              "save_elasticsearch": true, 
-              "save_gist": false, 
-              "save_local": false, // seems broken 
-              "save_temp": true, 
-              "save_temp_ttl": "30d", 
+              "hide": false,
+              "load_elasticsearch": true,
+              "load_elasticsearch_size": 20,
+              "load_gist": false,
+              "load_local": false,
+              "save_default": false,
+              "save_elasticsearch": true,
+              "save_gist": false,
+              "save_local": false, // seems broken
+              "save_temp": true,
+              "save_temp_ttl": "30d",
               "save_temp_ttl_enable": true
-          }, 
+          },
           "nav": [
               {
-                  "collapse": false, 
-                  "enable": true, 
-                  "filter_id": 0, 
-                  "notice": false, 
-                  "now": true, 
+                  "collapse": false,
+                  "enable": true,
+                  "filter_id": 0,
+                  "notice": false,
+                  "now": true,
                   "refresh_intervals": [
-                      "5s", 
-                      "10s", 
-                      "30s", 
-                      "1m", 
-                      "5m", 
-                      "15m", 
-                      "30m", 
-                      "1h", 
-                      "2h", 
+                      "5s",
+                      "10s",
+                      "30s",
+                      "1m",
+                      "5m",
+                      "15m",
+                      "30m",
+                      "1h",
+                      "2h",
                       "1d"
-                  ], 
-                  "status": "Stable", 
+                  ],
+                  "status": "Stable",
                   "time_options": [
-                      "5m", 
-                      "15m", 
-                      "1h", 
-                      "6h", 
-                      "12h", 
-                      "24h", 
-                      "2d", 
-                      "7d", 
+                      "5m",
+                      "15m",
+                      "1h",
+                      "6h",
+                      "12h",
+                      "24h",
+                      "2d",
+                      "7d",
                       "30d"
-                  ], 
-                  "timefield": "@timestamp", 
+                  ],
+                  "timefield": "@timestamp",
                   "type": "timepicker"
               }
-          ], 
-          "panel_hints": true, 
+          ],
+          "panel_hints": true,
           "pulldowns": [
               {
-                  "collapse": false, 
-                  "enable": true, 
+                  "collapse": false,
+                  "enable": true,
                   "history": [
-                      "@severity:DEBUG", 
-                      "@severity:INFO", 
-                      "@severity:WARN", 
-                      "@severity:ERROR", 
+                      "@severity:DEBUG",
+                      "@severity:INFO",
+                      "@severity:WARN",
+                      "@severity:ERROR",
                       "*"
-                  ], 
-                  "notice": false, 
-                  "pinned": true, 
-                  "query": "*", 
-                  "remember": 10, 
+                  ],
+                  "notice": false,
+                  "pinned": true,
+                  "query": "*",
+                  "remember": 10,
                   "type": "query"
-              }, 
+              },
               {
-                  "collapse": true, 
-                  "enable": true, 
-                  "notice": false, 
+                  "collapse": true,
+                  "enable": true,
+                  "notice": false,
                   "type": "filtering"
               }
-          ], 
-          "refresh": false, 
+          ],
+          "refresh": false,
           "rows": [
               {
-                  "collapsable": true, 
-                  "collapse": false, 
-                  "editable": true, 
-                  "height": "200px", 
-                  "notice": false, 
+                  "collapsable": true,
+                  "collapse": false,
+                  "editable": true,
+                  "height": "200px",
+                  "notice": false,
                   "panels": [
                       {
                           "annotate": {
-                              "enable": false, 
-                              "field": "_type", 
-                              "query": "*", 
-                              "size": 20, 
+                              "enable": false,
+                              "field": "_type",
+                              "query": "*",
+                              "size": 20,
                               "sort": [
-                                  "_score", 
+                                  "_score",
                                   "desc"
                               ]
-                          }, 
-                          "auto_int": true, 
-                          "bars": true, 
-                          "derivative": false, 
-                          "editable": true, 
-                          "fill": 3, 
+                          },
+                          "auto_int": true,
+                          "bars": true,
+                          "derivative": false,
+                          "editable": true,
+                          "fill": 3,
                           "grid": {
-                              "max": null, 
+                              "max": null,
                               "min": 0
-                          }, 
+                          },
                           "group": [
                               "default"
-                          ], 
-                          "interactive": true, 
-                          "interval": "5m", 
+                          ],
+                          "interactive": true,
+                          "interval": "5m",
                           "intervals": [
-                              "auto", 
-                              "1s", 
-                              "1m", 
-                              "5m", 
-                              "10m", 
-                              "30m", 
-                              "1h", 
-                              "3h", 
-                              "12h", 
-                              "1d", 
-                              "1w", 
+                              "auto",
+                              "1s",
+                              "1m",
+                              "5m",
+                              "10m",
+                              "30m",
+                              "1h",
+                              "3h",
+                              "12h",
+                              "1d",
+                              "1w",
                               "1y"
-                          ], 
-                          "legend": true, 
-                          "legend_counts": true, 
-                          "lines": false, 
-                          "linewidth": 3, 
-                          "mode": "count", 
-                          "options": true, 
-                          "percentage": false, 
-                          "pointradius": 5, 
-                          "points": false, 
+                          ],
+                          "legend": true,
+                          "legend_counts": true,
+                          "lines": false,
+                          "linewidth": 3,
+                          "mode": "count",
+                          "options": true,
+                          "percentage": false,
+                          "pointradius": 5,
+                          "points": false,
                           "queries": {
                               "ids": [
-                                  1, 
-                                  2, 
-                                  3, 
+                                  1,
+                                  2,
+                                  3,
                                   4
-                              ], 
+                              ],
                               "mode": "all"
-                          }, 
-                          "resolution": 100, 
-                          "scale": 1, 
-                          "show_query": true, 
-                          "span": 12, 
-                          "spyable": true, 
-                          "stack": true, 
-                          "time_field": "@timestamp", 
-                          "timezone": "browser", 
-                          "title": "Events over time", 
+                          },
+                          "resolution": 100,
+                          "scale": 1,
+                          "show_query": true,
+                          "span": 12,
+                          "spyable": true,
+                          "stack": true,
+                          "time_field": "@timestamp",
+                          "timezone": "browser",
+                          "title": "Events over time",
                           "tooltip": {
-                              "query_as_alias": true, 
+                              "query_as_alias": true,
                               "value_type": "cumulative"
-                          }, 
-                          "type": "histogram", 
-                          "value_field": null, 
-                          "x-axis": true, 
-                          "y-axis": true, 
-                          "y_format": "none", 
-                          "zerofill": true, 
+                          },
+                          "type": "histogram",
+                          "value_field": null,
+                          "x-axis": true,
+                          "y-axis": true,
+                          "y_format": "none",
+                          "zerofill": true,
                           "zoomlinks": true
                       }
-                  ], 
+                  ],
                   "title": "Graph"
-              }, 
+              },
               {
-                  "collapsable": true, 
-                  "collapse": false, 
-                  "editable": true, 
-                  "height": "350px", 
-                  "notice": false, 
+                  "collapsable": true,
+                  "collapse": false,
+                  "editable": true,
+                  "height": "350px",
+                  "notice": false,
                   "panels": [
                       {
-                          "all_fields": false, 
-                          "editable": true, 
-                          "error": false, 
-                          "field_list": false, 
-                          "fields": [                              
-                              "@timestamp", 
-                              "@fields.stepname", 
-                              "@source_host", 
+                          "all_fields": false,
+                          "editable": true,
+                          "error": false,
+                          "field_list": false,
+                          "fields": [
+                              "@timestamp",
+                              "@fields.stepname",
+                              "@source_host",
                               "@severity",
                               "@message"
-                          ], 
+                          ],
                           "group": [
                               "default"
-                          ], 
-                          "header": true, 
-                          "highlight": [], 
-                          "localTime": false, 
-                          "normTimes": true, 
-                          "offset": 0, 
-                          "overflow": "min-height", 
-                          "pages": 5, 
-                          "paging": true, 
+                          ],
+                          "header": true,
+                          "highlight": [],
+                          "localTime": false,
+                          "normTimes": true,
+                          "offset": 0,
+                          "overflow": "min-height",
+                          "pages": 5,
+                          "paging": true,
                           "queries": {
                               "ids": [
-                                  1, 
-                                  2, 
-                                  3, 
+                                  1,
+                                  2,
+                                  3,
                                   4
-                              ], 
+                              ],
                               "mode": "all"
-                          }, 
-                          "size": 100, 
+                          },
+                          "size": 100,
                           "sort": [
-                              "@timestamp", 
+                              "@timestamp",
                               "desc"
-                          ], 
-                          "sortable": true, 
-                          "span": 12, 
-                          "spyable": true, 
-                          "status": "Stable", 
+                          ],
+                          "sortable": true,
+                          "span": 12,
+                          "spyable": true,
+                          "status": "Stable",
                           "style": {
                               "font-size": "9pt"
-                          }, 
-                          "timeField": "@timestamp", 
-                          "trimFactor": 300, 
+                          },
+                          "timeField": "@timestamp",
+                          "trimFactor": 300,
                           "type": "table"
                       }
-                  ], 
+                  ],
                   "title": "Events"
               }
-          ], 
+          ],
           "services": {
               "filter": {
                   "idQueue": [
-                  //    1, 
+                  //    1,
                   //    2
-                  ], 
+                  ],
                   "ids": [
-                      1, 
+                      1,
                       0
-                  ], 
+                  ],
                   "list": {
                       "0": {
-                          "active": true, 
-                          "alias": "", 
-                          "field": "@timestamp", 
-                          "from": "now-1d", 
-                          "id": 0, 
-                          "mandate": "must", 
-                          "to": "now", 
+                          "active": true,
+                          "alias": "",
+                          "field": "@timestamp",
+                          "from": "now-1d",
+                          "id": 0,
+                          "mandate": "must",
+                          "to": "now",
                           "type": "time"
-                      }, 
+                      },
                       "1": {
-                          "active": true, 
-                          "alias": "", 
-                          "id": 1, 
-                          "mandate": "must", 
-                          "query": "@fields.instId:\"" + instance.id + "\"", 
+                          "active": true,
+                          "alias": "",
+                          "id": 1,
+                          "mandate": "must",
+                          "query": "@fields.instId:\"" + instance.id + "\"",
                           "type": "querystring"
                       }
                   }
-              }, 
+              },
               "query": {
                   "idQueue": [
-                      1, 
-                      2, 
-                      3, 
+                      1,
+                      2,
+                      3,
                       4,
                       5
-                  ], 
+                  ],
                   "ids": [
-                      1, 
-                      2, 
-                      3, 
+                      1,
+                      2,
+                      3,
                       4,
                       5
-                  ], 
+                  ],
                   "list": {
                       "1": {
-                          "alias": "", 
-                          "color": "#FF0000", 
-                          "enable": true, 
-                          "id": 1, 
-                          "pin": false, 
-                          "query": "@severity:FATAL", 
+                          "alias": "",
+                          "color": "#FF0000",
+                          "enable": true,
+                          "id": 1,
+                          "pin": false,
+                          "query": "@severity:FATAL",
                           "type": "lucene"
                       },
                       "2": {
-                          "alias": "", 
-                          "color": "#E24D42", 
-                          "enable": true, 
-                          "id": 2, 
-                          "pin": false, 
-                          "query": "@severity:ERROR", 
+                          "alias": "",
+                          "color": "#E24D42",
+                          "enable": true,
+                          "id": 2,
+                          "pin": false,
+                          "query": "@severity:ERROR",
                           "type": "lucene"
-                      }, 
+                      },
                       "3": {
-                          "alias": "", 
-                          "color": "#EAB839", 
-                          "enable": true, 
-                          "id": 3, 
-                          "pin": false, 
-                          "query": "@severity:WARN*", 
+                          "alias": "",
+                          "color": "#EAB839",
+                          "enable": true,
+                          "id": 3,
+                          "pin": false,
+                          "query": "@severity:WARN*",
                           "type": "lucene"
-                      }, 
+                      },
                       "4": {
-                          "alias": "", 
-                          "color": "#7EB26D", 
-                          "enable": true, 
-                          "id": 4, 
-                          "pin": false, 
-                          "query": "@severity:INFO", 
+                          "alias": "",
+                          "color": "#7EB26D",
+                          "enable": true,
+                          "id": 4,
+                          "pin": false,
+                          "query": "@severity:INFO",
                           "type": "lucene"
-                      }, 
+                      },
                       "5": {
-                          "alias": "", 
-                          "color": "#6ED0E0", 
-                          "enable": true, 
-                          "id": 5, 
-                          "pin": false, 
-                          "query": "@severity:DEBUG", 
+                          "alias": "",
+                          "color": "#6ED0E0",
+                          "enable": true,
+                          "id": 5,
+                          "pin": false,
+                          "query": "@severity:DEBUG",
                           "type": "lucene"
                       }
                   }
               }
-          }, 
+          },
           "style": "light"
       }
   }
@@ -613,21 +613,21 @@ app.propertyWidgets.KibanaLogs = (function() {
         .click(function() { if (!$(this).parent().hasClass("open")) openDropdownHandler.apply(this); }));
       group.append($('<ul class="dropdown-menu"></ul>').click(function(event) { event.stopPropagation();}));
     } else {
-      group.find(".btn").addClass("btn-mini");    
+      group.find(".btn").addClass("btn-mini");
     }
     return group;
   }
-  
+
   return {
     layout: 'inline',
     render: function(instance, returnValue, userValue) {
-      return renderButton(false, 
-        onInstanceLinkClicked(instance, returnValue, userValue), 
+      return renderButton(false,
+        onInstanceLinkClicked(instance, returnValue, userValue),
         onLogParametersClicked(instance, returnValue, userValue)).get(0);
     },
     renderSmall: function(instance, returnValue, userValue) {
-      return renderButton(true, 
-        onInstanceLinkClicked(instance, returnValue, userValue), 
+      return renderButton(true,
+        onInstanceLinkClicked(instance, returnValue, userValue),
         onLogParametersClicked(instance, returnValue, userValue)).get(0);
     }
   }

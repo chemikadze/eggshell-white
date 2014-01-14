@@ -1,0 +1,353 @@
+application:
+
+    interfaces:
+
+        input:
+            logger-num: bind(workflow#input.logger-num)
+        actions:
+            do-something: bind(workflow#actions.do-something)
+            do-empty-chef-run: bind(workflow#actions.do-empty-chef-run)
+            update-logger: bind(workflow#actions.update-logger)
+        result:
+            vms:                       bind(workflow#result.vms)
+            kibana-instance-dashboard: bind(workflow#result.kibana-instance-dashboard)
+
+    configuration:
+        input.logger-num: 2
+
+    components:
+
+        wfService:
+          type: reference.Service
+          interfaces:
+            executor:
+              execute-workflow:    receive-command(object request => object status => object status)
+              execute-command:     send-command(string interface, string command, map<string, object> arguments => map<string, object> response => map<string, object> response)
+
+        secureStore:
+          type: reference.Service
+          interfaces:
+            keypair-store:
+              get-keypair:         receive-command(string id => object privateKey)
+
+        workflow:
+            type: workflow.Instance
+            interfaces:
+                input:
+                    logger-num: configuration(int)
+                actions:
+                    do-something:      receive-command(string command => object stdout => object stderr)
+                    do-empty-chef-run: receive-command(string logger-cookbooks-version => object chefState)
+                    update-logger:     receive-command()
+                keypair-store:
+                    get-keypair:       send-command(string id => object privateKey)
+                result:
+                    vms:                       publish-signal(list<string>)
+                    kibana-instance-dashboard: publish-signal(string)
+            required: [keypair-store]
+            configuration:
+                configuration.workflows:
+
+                    # requires environtment policy:
+                    #   action: enable-logging
+                    #   value:  logstash-host
+
+                    launch:
+                        parameters:
+                            logger-num: # for test purposes
+                                description: Number of loggers
+                                type: int
+                                default: 2
+
+                        steps:
+
+                            - provision-vm:
+                                  action: .provisionVmsWithLogging
+                                  phase: provision-vm
+                                  parameters:
+                                      quantity: "{$.logger-num}"
+                                      hardwareId: "m1.small"
+                                      roleName: logger
+                                      vmIdentity: ec2-user
+                                      imageId: us-east-1/ami-3ecd1e57
+                                  output:
+                                    loggerips: ips
+                                    instance-dashboard: instance-dashboard
+
+                            - do-something:
+                                  action: do-something
+                                  precedingPhases: [ provision-vm ]
+                                  parameters: {}
+
+                        return:
+                            vms:
+                                description: VMs
+                                value: "{$.loggerips}"
+                            # ADD TO YOUR MANIFEST this return value should present to get rendered widget with link
+                            kibana-instance-dashboard:
+                                description: Logging Dashboard for instance
+                                value: "{$.instance-dashboard}"
+
+                    do-something:
+                        parameters:
+                            command:
+                              type: string
+                              default: 'echo "Hello from execrun!"'
+                              description: "Command to execute"
+                        steps:
+                            - run-command:
+                                action: execrun
+                                phase: "run-command"
+                                precedingPhases: [  ]
+                                parameters:
+                                  roles: [ logger ]
+                                  command:
+                                    - "{$.command}"
+                                output:
+                                  stdout: stdout
+                                  stderr: stderr
+                        return:
+                          stdout:
+                            value: "{$.stdout}"
+                          stderr:
+                            value: "{$.stderr}"
+
+
+                    do-empty-chef-run:
+                        parameters:
+                            logger-cookbooks-version:
+                              type: string
+                              default: "stable"
+
+                        steps:
+                            - dummy-chefrun:
+                                action: chefsolo
+                                phase: "dummy-chefrun"
+                                precedingPhases: [ ]
+                                parameters:
+                                  roles: [ logger ]
+                                  recipeUrl: "http://qubell-logging.s3.amazonaws.com/{$.logger-cookbooks-version}/nxlog.tar.gz"
+                                  runList: [ ]
+                                  jattrs: {}
+                                output:
+                                  chefState: chefState
+                        return:
+                            chefState:
+                              value: "{$.chefState}"
+
+
+                    update-logger:
+                        steps:
+
+                          - enable-logging:
+                              action: enable-logging
+                              phase: enable-logging
+                              parameters:
+                                vms: "{$.vms}"
+                                vmIdentity: ec2-user
+
+
+                    destroy:
+                        steps:
+                        - destroy-vm:
+                            action: undeployEnv
+                            parameters:
+                                phase: destroy
+
+
+                    # OPTIONAL MACRO WRAPPING PROVISION
+                    .provisionVmsWithLogging:
+                        parameters:
+                            retryCount:
+                              type: int
+                              default: 0
+                              min: 0
+                            roleName:
+                              type: string
+                              default: "default"
+                              length: {min: 1}
+                            hardwareId:
+                              type: string
+                              length: {min: 1}
+                            imageId:
+                              type: string
+                              default: ""
+                            quantity:
+                              type: int
+                              min: 1
+                              default: 1
+                            targetQuantity:
+                              type: int
+                              default: -1
+                            instanceId:
+                              type: string
+                              default: ""
+                            staticIps:
+                              default: ""
+                            # This parameter is obsolete. Use "staticIps" instead.
+                            ip:
+                              type: string
+                              default: ""
+                            jcloudsProvider:
+                              type: string
+                              length: {min: 1}
+                              default: "stub"
+                            jcloudsEndpoint:
+                              type: string
+                              length: {min: 1}
+                              default: "stub"
+                            jcloudsIdentity:
+                              type: string
+                              length: {min: 1}
+                              default: "stub"
+                            jcloudsCredential:
+                              type: string
+                              length: {min: 1}
+                              default: "stub"
+                            jcloudsNodeNamePrefix:
+                              type: string
+                              length: {min: 1}
+                              default: "GN"
+                            jcloudsRegions:
+                              type: string
+                              default: ""
+                            # parameters ec2SecurityGroup and subnetId are mutual exclusive.
+                            # If subnetId is set ec2SecurityGroup is ignored.
+                            ec2SecurityGroup:
+                              type: string
+                              default: "default"
+                            subnetId:
+                              type: string
+                              default: ""
+                            vmIdentity:
+                              type: string
+                              default: "root"
+                            vmPassword:
+                              type: string
+                              default: ""
+                            vmCredentialResource:
+                              type: string
+                              default: "/environments/undeploy-me.pem"
+                              length: {min: 1}
+                            useSecureCredentialsStore:
+                              type: bool
+                              default: false
+                            providerSettings:
+                              type: map
+                              default: {}
+
+
+                        steps:
+
+                            - wrapped-provision-vms:
+                                  action: provisionVms
+                                  phase: provision
+                                  parameters:
+                                      retryCount: "{$.retryCount}"
+                                      instanceId: "{$.instanceId}"
+                                      ip: "{$.ip}"
+                                      targetQuantity: "{$.targetQuantity}"
+                                      imageId: "{$.imageId}"
+                                      jcloudsRegions: "{$.jcloudsRegions}"
+                                      subnetId: "{$.subnetId}"
+                                      vmIdentity: "{$.vmIdentity}"
+                                      hardwareId: "{$.hardwareId}"
+                                      providerSettings: "{$.providerSettings}"
+                                      jcloudsIdentity: "{$.jcloudsIdentity}"
+                                      jcloudsCredential: "{$.jcloudsCredential}"
+                                      vmPassword: "{$.vmPassword}"
+                                      useSecureCredentialsStore: "{$.useSecureCredentialsStore}"
+                                      jcloudsProvider: "{$.jcloudsProvider}"
+                                      staticIps: "{$.staticIps}"
+                                      jcloudsNodeNamePrefix: "{$.jcloudsNodeNamePrefix}"
+                                      ec2SecurityGroup: "{$.ec2SecurityGroup}"
+                                      vmCredentialResource: "{$.vmCredentialResource}"
+                                      roleName: "{$.roleName}"
+                                      jcloudsEndpoint: "{$.jcloudsEndpoint}"
+                                      quantity: "{$.quantity}"
+                                  output:
+                                    ips: ips
+                                    privateips: privateips
+
+                            - enable-logging:
+                                action: enable-logging
+                                phase: enable-logging
+                                precedingPhases: [ provision ]
+                                parameters:
+                                  # vms: "{$.privateips}" # TODO: for private clouds
+                                  vms: "{$.ips}"
+                                  vmIdentity: "{$.vmIdentity}"
+                                output:
+                                  instance-dashboard: instance-dashboard
+
+                        return:
+                            ips:
+                              value: "{$.ips}"
+                            privateips:
+                              value: "{$.privateips}"
+                            instance-dashboard:
+                              value: "{$.instance-dashboard}"
+
+
+                    # THIS IS ACTUAL REUSABLE STEP FOR OTHER MANIFESTS
+                    # ADD TO YOUR MANIFEST
+                    #
+                    # TODO: should not be needed for hierarchical manifests
+                    # TODO: can not start with dot :(
+                    enable-logging:
+                        parameters:
+                            vms:
+                              description: "List of hosts to install and configure nxlog"
+                            logstash-host:
+                              type: string
+                            logger-cookbooks-version:
+                              type: string
+                              default: "stable"
+                            vmIdentity:
+                              type: string
+                              default: root
+
+                        steps:
+
+                            - cleanup-role:
+                                action: provisionVms
+                                phase: cleanup-role
+                                parameters:
+                                    roleName: qubell-logger-source
+                                    hardwareId: ""
+                                    vmIdentity: "{$.vmIdentity}"
+                                    retryCount: 1
+                                    targetQuantity: 0
+
+                            - populate-role:
+                                action: provisionVms
+                                phase: populate-role
+                                precedingPhases: [ cleanup-role ]
+                                parameters:
+                                    roleName: qubell-logger-source
+                                    hardwareId: ""
+                                    vmIdentity: "{$.vmIdentity}"
+                                    retryCount: 1
+                                    staticIps: "{$.vms}"
+
+                            - start-logger:
+                                action: chefrun
+                                phase: start-logger
+                                precedingPhases: [ populate-role ]
+                                parameters:
+                                  isSolo: true
+                                  roles: [ qubell-logger-source ]
+                                  recipeUrl: "http://qubell-logging.s3.amazonaws.com/{$.logger-cookbooks-version}/nxlog.tar.gz"
+                                  runList: [ "recipe[qubell_logging]" ]
+                                  jattrs:
+                                    qubell_logging:
+                                      user: "{$.vmIdentity}"
+                                      consumer: "{$.logstash-host}"
+
+                        return:
+                            instance-dashboard:
+                              value: "http://{$.logstash-host}/kibana/index.html#/dashboard/file/logstash.json"
+
+    bindings:
+        - [workflow, wfService]
+        - [workflow, secureStore]

@@ -18,8 +18,10 @@ filter {
 
   grok {
       type => "nxlog"
-      match => [ "FileName", "%{DATA:instId}/%{DATA:jobId}\.%{DATA:stepId}\.%{DATA:stepname}/%{GREEDYDATA:filename}" ]
-      break_on_match => false
+
+      # v1 cobalt-52aab45be4b0ef4e9b9e0a9b.applications.52d4de58e4b08ec56d58a714.workflow/jobid.stepid.stepname/filename.txt
+      # v2 52d4de58e4b08ec56d58a714/jobid.stepid.stepname/filename.txt
+      match => [ "FileName", "(cobalt-%{BASE16NUM:appId}\.applications\.%{BASE16NUM:instId}\.?%{DATA:componentId}|%{BASE16NUM:instId})/%{DATA:jobId}\.%{DATA:stepId}\.%{DATA:stepname}/%{GREEDYDATA:filename}" ]
   }
 
   mutate {
@@ -39,7 +41,7 @@ filter {
       tags => [ "unprocessed" ]
       remove_tag => [ "unprocessed" ]
       match => [ "Message", "[/\w_%!$@:.,-]+:%{NUMBER}: %{DATA:Severity}: %{GREEDYDATA:MessageTxt}" ]
-  }  
+  }
 
   grok { # other messages from stderr
     type => "nxlog"
@@ -53,7 +55,7 @@ filter {
   mutate { # other messages stdin
     type => "nxlog"
     tags => [ "unprocessed" ]
-    remove_tag => [ "unprocessed" ] 
+    remove_tag => [ "unprocessed" ]
     add_field => [ "Severity", "INFO" ]
     add_field => [ "MessageTxt", "%{Message}" ]
   }
@@ -63,7 +65,7 @@ filter {
       replace => [ "@severity", "%{Severity}" ]
       replace => [ "@message", "%{MessageTxt}" ]
       replace => [ "@raw", "%{Message}" ]
-  }  
+  }
 
   mutate {
       type => "nxlog"
