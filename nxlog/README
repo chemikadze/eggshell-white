@@ -8,3 +8,20 @@ Building NXLOG statically
 Following packages required to build on CentOS:
 
   apr-devel pcre-devel openssl-devel expat-devel
+
+
+Using NXLOG installer
+=====================
+
+1. Set up env variables
+2. Run ./setup-nxlog.sh
+3. Binary tarball will be downloaded, unpacked and daemon started
+
+Supported env variables and their defaults:
+
+  NXLOG_CONSUMER    localhost
+  NXLOG_ROOT        ~/.undeploy.me/nxlog
+  NXLOG_MONITOR_DIR ~/.undeploy.me
+  NXLOG_RELEASE     latest
+  NXLOG_REPO        http://qubell-logging.s3.amazonaws.com/$NXLOG_RELEASE
+  TMPDIR            /tmp/
