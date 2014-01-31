@@ -18,3 +18,9 @@ s3cmd put -P -m application/x-yaml manifests/logstash.yaml         s3://qubell-l
 s3cmd put -P -m application/x-yaml manifests/nxlog-example.yaml    s3://qubell-logging/$VERSION/nxlog-example.yaml
 s3cmd put -P -m application/x-yaml manifests/nxlog-example.yaml    s3://qubell-logging/$VERSION/nxlog-example.v1.yaml
 s3cmd put -P -m application/x-yaml manifests/nxlog-example.v2.yaml s3://qubell-logging/$VERSION/nxlog-example.v2.yaml
+
+for i in target/nxlog-static*.tar.gz; do
+  s3cmd put -P -m application/x-gzip $i s3://qubell-logging/$VERSION/${i#target/}
+done
+
+s3cmd put -P nxlog/setup-nxlog.sh s3://qubell-logging/$VERSION/setup-nxlog.sh
