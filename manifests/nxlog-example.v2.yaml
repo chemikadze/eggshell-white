@@ -293,7 +293,6 @@ application:
                     # ADD TO YOUR MANIFEST
                     #
                     # TODO: should not be needed for hierarchical manifests
-                    # TODO: can not start with dot :(
                     enable-logging:
                         parameters:
                             vms:
@@ -331,22 +330,19 @@ application:
                                     staticIps: "{$.vms}"
 
                             - start-logger:
-                                action: chefrun
+                                action: execrun
                                 phase: start-logger
                                 precedingPhases: [ populate-role ]
                                 parameters:
-                                  isSolo: true
                                   roles: [ qubell-logger-source ]
-                                  recipeUrl: "http://qubell-logging.s3.amazonaws.com/{$.logger-cookbooks-version}/nxlog.tar.gz"
-                                  runList: [ "recipe[qubell_logging]" ]
-                                  jattrs:
-                                    qubell_logging:
-                                      user: "{$.vmIdentity}"
-                                      consumer: "{$.logstash-host}"
+                                  url: "http://qubell-logging.s3.amazonaws.com/{$.logger-cookbooks-version}/setup-nxlog.sh"
+                                  args:
+                                    - '{$.logstash-host}'
 
                         return:
                             instance-dashboard:
                               value: "http://{$.logstash-host}/kibana/index.html#/dashboard/file/logstash.json"
+
 
     bindings:
         - [workflow, wfService]

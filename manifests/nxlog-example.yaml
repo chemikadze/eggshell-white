@@ -280,18 +280,14 @@ destroy:
                 staticIps: "{$.vms}"
 
         - start-logger:
-            action: chefrun
+            action: execrun
             phase: start-logger
             precedingPhases: [ populate-role ]
             parameters:
-              isSolo: true
               roles: [ qubell-logger-source ]
-              recipeUrl: "http://qubell-logging.s3.amazonaws.com/{$.logger-cookbooks-version}/nxlog.tar.gz"
-              runList: [ "recipe[qubell_logging]" ]
-              jattrs:
-                qubell_logging:
-                  user: "{$.vmIdentity}"
-                  consumer: "{$.logstash-host}"
+              url: "http://qubell-logging.s3.amazonaws.com/{$.logger-cookbooks-version}/setup-nxlog.sh"
+              args:
+                - '{$.logstash-host}'
 
     return:
         instance-dashboard:
