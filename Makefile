@@ -10,7 +10,7 @@ upload_as_stable: all
 
 upload_new_version: all
 	./upload-assets.sh -f $(shell git log -n 1 --pretty=format:%h)
-.PHONY: upload_stable
+.PHONY: upload_new_version
 
 pack_cookbooks: target/logstash.tar.gz target/nxlog.tar.gz
 .PHONY: pack_cookbooks
