@@ -2,11 +2,11 @@
 
 <% if node['kibana']['serve_ssl'] -%>
 
-server { 
-  listen 80; 
-  server_name _; 
-  
-  rewrite ^(.*)$ https://$host$1 permanent; 
+server {
+  listen 80;
+  server_name _;
+
+  rewrite ^(.*)$ https://$host$1 permanent;
 }
 
 <% end -%>
@@ -35,12 +35,12 @@ server {
     }
 
     location /kibana/ {
-        alias   <%= node['kibana']['install_root'] %>/kibana-master/src/;
+        alias   <%= node['kibana']['install_root'] %>/src/;
         index  index.html index.htm;
     }
 
     location /kibana-master/src/ {
-        alias   <%= node['kibana']['install_root'] %>/kibana-master/src/;
+        alias   <%= node['kibana']['install_root'] %>/src/;
         index  index.html index.htm;
     }
 

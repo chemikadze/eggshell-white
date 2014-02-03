@@ -7,6 +7,14 @@ include_recipe "service_factory"
 
 rootdir = "/var/lib/logstash"
 
+loglevels = {
+  "WARN" => "",
+  "INFO" => "-v",
+  "DEBUG" => "-vv",
+  "TRACE" => "-vvv"
+}
+loglevels.default = ""
+
 directory rootdir do
   owner node.logstash.user
   group node.logstash.group
@@ -14,7 +22,17 @@ directory rootdir do
   action :create
 end
 
-directory "/data" do
+node['elasticsearch']['path'].each_value do |path|
+  directory path do
+    owner node.logstash.user
+    group node.logstash.group
+    mode "0755"
+    recursive true
+    action :create
+  end
+end
+
+directory node["logstash"]["logs"] do
   owner node.logstash.user
   group node.logstash.group
   mode "0755"
@@ -47,14 +65,19 @@ template "#{rootdir}/logstash.conf" do
   source "logstash.conf.erb"
 end
 
+elasticsearch_settings = []
+node['elasticsearch']['path'].each_pair { |key, value| elasticsearch_settings << "-Des.path.#{key}=#{value}" }
+
 service_factory "logstash" do
   service_desc "Lostash and Elasticsearch"
   exec "/usr/bin/java"
-  exec_args [
+  exec_args elasticsearch_settings + [
     "-jar #{rootdir}/logstash.jar",
     "agent",
-    "-f #{rootdir}/logstash.conf"
-  ]
+    "-f #{rootdir}/logstash.conf",
+    "--log #{node['logstash']['logs']}/logstash.log",
+    loglevels[node['logstash']['loglevel']]
+  ] + node['logstash']['extra_args']
   after_start "sleep 300" # logstash startup is very slow
   run_user node.logstash.user
   run_group node.logstash.group

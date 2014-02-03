@@ -8,7 +8,7 @@ directory node['kibana']['install_root'] do
   action :create
 end
 
-template "#{node['kibana']['install_root']}/kibana-master/src/app/dashboards/logstash.json" do
+template "#{node['kibana']['install_root']}/src/app/dashboards/logstash.json" do
   user "root"
   group "root"
   mode "0644"
@@ -16,7 +16,7 @@ template "#{node['kibana']['install_root']}/kibana-master/src/app/dashboards/log
   action :nothing
 end
 
-template "#{node['kibana']['install_root']}/kibana-master/src/config.js" do
+template "#{node['kibana']['install_root']}/src/config.js" do
   user "root"
   group "root"
   mode "0644"
@@ -28,15 +28,15 @@ bash "install kibana" do
   user "root"
   group "root"
   code <<-EOC
-    tar -xzf #{Chef::Config[:file_cache_path]}/kibana.tar.gz -C #{node['kibana']['install_root']}
+    tar -xzf #{Chef::Config[:file_cache_path]}/kibana.tar.gz -C #{node['kibana']['install_root']} --strip-components=1
   EOC
   action :nothing
-  notifies :create, "template[#{node['kibana']['install_root']}/kibana-master/src/app/dashboards/logstash.json]", :immediately
-  notifies :create, "template[#{node['kibana']['install_root']}/kibana-master/src/config.js]", :immediately
+  notifies :create, "template[#{node['kibana']['install_root']}/src/app/dashboards/logstash.json]", :immediately
+  notifies :create, "template[#{node['kibana']['install_root']}/src/config.js]", :immediately
 end
 
 remote_file "#{Chef::Config[:file_cache_path]}/kibana.tar.gz" do
-  source "https://github.com/elasticsearch/kibana/archive/9d6573e3d8130d722f71835957fcdf602ca1e18f.tar.gz"
+  source "http://github.com/elasticsearch/kibana/archive/#{node['kibana']['version']}.tar.gz"
   notifies :run, "bash[install kibana]", :immediately
 end
 
