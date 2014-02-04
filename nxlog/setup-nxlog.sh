@@ -25,7 +25,14 @@ function install_nxlog
   mkdir -p $NXLOG_ROOT/spool
   mkdir -p $NXLOG_ROOT/cache
   mkdir -p $NXLOG_ROOT/var
-  wget $NXLOG_REPO/nxlog-static-$(detect_system).tar.gz -O $TMPDIR/nxlog.tar.gz
+  if which wget 2>&1 1>/dev/null; then
+    wget $NXLOG_REPO/nxlog-static-$(detect_system).tar.gz -O $TMPDIR/nxlog.tar.gz
+  elif which curl 2>&1 1>/dev/null; then
+    curl $NXLOG_REPO/nxlog-static-$(detect_system).tar.gz -o $TMPDIR/nxlog.tar.gz
+  else
+    echo "Neither cURL or Wget installed, can not retrieve package."
+    exit 1
+  fi
   tar xzvpf $TMPDIR/nxlog.tar.gz -C $NXLOG_ROOT --strip-components=1
 }
 
