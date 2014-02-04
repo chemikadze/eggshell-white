@@ -274,8 +274,7 @@ application:
                                 phase: enable-logging
                                 precedingPhases: [ provision ]
                                 parameters:
-                                  # vms: "{$.privateips}" # TODO: for private clouds
-                                  vms: "{$.ips}"
+                                  roles: [ '{$.roleName}' ]
                                   vmIdentity: "{$.vmIdentity}"
                                 output:
                                   instance-dashboard: instance-dashboard
@@ -291,50 +290,23 @@ application:
 
                     # THIS IS ACTUAL REUSABLE STEP FOR OTHER MANIFESTS
                     # ADD TO YOUR MANIFEST
-                    #
-                    # TODO: should not be needed for hierarchical manifests
                     enable-logging:
                         parameters:
-                            vms:
-                              description: "List of hosts to install and configure nxlog"
+                            roles:
+                              description: "List of roles to install and configure nxlog"
+                              type: list
                             logstash-host:
                               type: string
                             logger-cookbooks-version:
                               type: string
                               default: "stable"
-                            vmIdentity:
-                              type: string
-                              default: root
 
                         steps:
 
-                            - cleanup-role:
-                                action: provisionVms
-                                phase: cleanup-role
-                                parameters:
-                                    roleName: qubell-logger-source
-                                    hardwareId: ""
-                                    vmIdentity: "{$.vmIdentity}"
-                                    retryCount: 1
-                                    targetQuantity: 0
-
-                            - populate-role:
-                                action: provisionVms
-                                phase: populate-role
-                                precedingPhases: [ cleanup-role ]
-                                parameters:
-                                    roleName: qubell-logger-source
-                                    hardwareId: ""
-                                    vmIdentity: "{$.vmIdentity}"
-                                    retryCount: 1
-                                    staticIps: "{$.vms}"
-
                             - start-logger:
                                 action: execrun
-                                phase: start-logger
-                                precedingPhases: [ populate-role ]
                                 parameters:
-                                  roles: [ qubell-logger-source ]
+                                  roles: '{$.roles}'
                                   url: "http://qubell-logging.s3.amazonaws.com/{$.logger-cookbooks-version}/setup-nxlog.sh"
                                   args:
                                     - '{$.logstash-host}'
