@@ -21,7 +21,7 @@ filter {
 
       # v1 cobalt-52aab45be4b0ef4e9b9e0a9b.applications.52d4de58e4b08ec56d58a714.workflow/jobid.stepid.stepname/filename.txt
       # v2 52d4de58e4b08ec56d58a714/jobid.stepid.stepname/filename.txt
-      match => [ "FileName", "(cobalt-%{BASE16NUM:appId}\.applications\.%{BASE16NUM:instId}\.?%{DATA:componentId}|%{BASE16NUM:instId})/%{DATA:jobId}\.%{DATA:stepId}\.%{DATA:stepname}/%{GREEDYDATA:filename}" ]
+      match => [ "FileName", "(cobalt-%{BASE16NUM:appId}\.applications\.%{BASE16NUM:instId}\.?%{DATA:componentId}|%{BASE16NUM:instId})/(%{DATA:jobId}\.%{DATA:stepId}\.%{DATA:stepname}|%{DATA})/%{GREEDYDATA:filename}" ]
   }
 
   mutate {
@@ -52,11 +52,21 @@ filter {
     add_field => [ "MessageTxt", "%{Message}" ]
   }
 
-  mutate { # other messages stdin
+  grok { # other messages stdout
     type => "nxlog"
     tags => [ "unprocessed" ]
     remove_tag => [ "unprocessed" ]
+    match => [ "Stream", "stdout" ]
     add_field => [ "Severity", "INFO" ]
+    add_field => [ "MessageTxt", "%{Message}" ]
+  }
+
+  mutate { # messages from custom locations
+    type => "nxlog"
+    tags => [ "unprocessed" ]
+    remove_tag => [ "unprocessed" ]
+    add_field => [ "Severity", "INFO" ] # TODO: parse most common formats
+    add_field => [ "filename", "%{FileName}" ]
     add_field => [ "MessageTxt", "%{Message}" ]
   }
 
