@@ -25,50 +25,72 @@ function install_nxlog
   mkdir -p $NXLOG_ROOT/spool
   mkdir -p $NXLOG_ROOT/cache
   mkdir -p $NXLOG_ROOT/var
-  if which wget 2>&1 1>/dev/null; then
-    wget $NXLOG_REPO/nxlog-static-$(detect_system).tar.gz -O $TMPDIR/nxlog.tar.gz
-  elif which curl 2>&1 1>/dev/null; then
-    curl $NXLOG_REPO/nxlog-static-$(detect_system).tar.gz -o $TMPDIR/nxlog.tar.gz
-  else
-    echo "Neither cURL or Wget installed, can not retrieve package."
-    exit 1
-  fi
+  curl -Lkso $TMPDIR/nxlog.tar.gz $NXLOG_REPO/nxlog-static-$(detect_system).tar.gz
   tar xzvpf $TMPDIR/nxlog.tar.gz -C $NXLOG_ROOT --strip-components=1
 }
 
-function register_qubell_path # (logger_host, path)
+function register_qubell_path # (group, logger_host, path)
 {
-  echo "qubell $1 $2" >> $NXLOG_REGISTRY
-}
-
-function register_user_path # (logger_host, path...)
-{
-  HOST=$1
-  while [ ! "x$2" == "x" ]; do
-    echo "file   $HOST $2" >> $NXLOG_REGISTRY
+  if [ "x$1" == "x--apply-now" ]; then
+    POSTSCRIPT="apply_registry_changes; start_service"
     shift
-  done
-}
-
-function deregister_single_path # (logger_host, path)
-{
-  if grep -n "$1 $2" $NXLOG_REGISTRY 2>&1 1>/dev/null; then
-    /bin/cp -f $NXLOG_REGISTRY $NXLOG_REGISTRY~
-    (
-      LINE=$(grep -n "$1 $2" $NXLOG_REGISTRY~ | head -1 | cut -f1 -d:)
-      head -n $(expr $LINE - 1 ) $NXLOG_REGISTRY~ 2>/dev/null
-      tail -n +$(expr $LINE + 1 ) $NXLOG_REGISTRY~ 2>/dev/null
-    ) > $NXLOG_REGISTRY
+  else
+    POSTSCRIPT=true
+  fi
+  if ! grep "qubell $1 $2 $3" $NXLOG_REGISTRY 2>/dev/null 1>/dev/null; then
+    echo "qubell $1 $2 $3" >> $NXLOG_REGISTRY
+    eval "$POSTSCRIPT"
   fi
 }
 
-function deregister_path # (logger_host, path...)
+function register_user_path # (group, logger_host, path...)
 {
-  HOST=$1
-  while [ ! "x$2" == "x" ]; do
-    deregister_single_path $HOST "$2"
+  if [ "x$1" == "x--apply-now" ]; then
+    POSTSCRIPT="apply_registry_changes; start_service"
+    shift
+  else
+    POSTSCRIPT=true
+  fi
+  GROUP=$1
+  HOST=$2
+  shift 2
+  while [ ! "x$1" == "x" ] && [ ! "x$1" == "x--" ]; do
+    if ! grep "file $GROUP $HOST $1" $NXLOG_REGISTRY 2>/dev/null 1>/dev/null; then
+      echo "file $GROUP $HOST $1" >> $NXLOG_REGISTRY
+    fi
     shift
   done
+  eval "$POSTSCRIPT"
+}
+
+function deregister_path # (group[, logger_host, [path...]])
+{
+  if [ "x$1" == "x--apply-now" ]; then
+    POSTSCRIPT="apply_registry_changes; start_service"
+    shift
+  else
+    POSTSCRIPT=true
+  fi
+  GROUP=$1
+  HOST=$2
+  shift; shift # sh does not changes $# if number is greater than arg count
+  if [ "x$1" == "x" ] || [ "x$1" == "x--" ]; then
+    /bin/cp -f $NXLOG_REGISTRY $NXLOG_REGISTRY~
+    PATTERN=" $GROUP "
+    echo "'$PATTERN'"
+    if [ ! "x$HOST" == "x" ]; then
+      PATTERN="$PATTERN$HOST "
+    fi
+    echo "'$PATTERN'"
+    grep -v "$PATTERN" $NXLOG_REGISTRY~ > $NXLOG_REGISTRY
+  else
+    while [ ! "x$1" == "x" ] && [ ! "x$1" == "x--" ]; do
+      /bin/cp -f $NXLOG_REGISTRY $NXLOG_REGISTRY~
+      grep -v " $GROUP $HOST $1" $NXLOG_REGISTRY~ > $NXLOG_REGISTRY
+      shift
+    done
+  fi
+  eval "$POSTSCRIPT"
 }
 
 function show_registry
@@ -76,7 +98,7 @@ function show_registry
   cat $NXLOG_REGISTRY
 }
 
-function compile_registry
+function apply_registry_changes
 {
   (
     cat <<EOF
@@ -103,8 +125,8 @@ CacheDir %ROOTDIR%/cache
 </Extension>
 EOF
 
-    cat $NXLOG_REGISTRY | while read TARGET_TYPE LOGGER_HOST TARGET_PATH; do
-      TARGET_ID=$(head -c 100 /dev/urandom | base64 | sed 's/[+=/A-Z]//g' | tail -c 9)
+    cat $NXLOG_REGISTRY | while read TARGET_TYPE GROUP LOGGER_HOST TARGET_PATH; do
+      TARGET_ID=${GROUP}_$(head -c 100 /dev/urandom | base64 | sed 's/[+=/A-Z]//g' | tail -c 9)
       cat <<EOF
 
 ############################################################
@@ -114,6 +136,7 @@ EOF
 EOF
       case $TARGET_TYPE in
         qubell)
+          TARGET_PREFIX_LEN=$(awk -v a="$TARGET_PATH" -v b=".undeploy.me" 'BEGIN{if (index(a, b)==0) {print length(a)} else {print index(a,b) + 12}}')
           cat <<EOF
 <Input job_stdout_$TARGET_ID>
     Module im_file
@@ -121,7 +144,7 @@ EOF
     SavePos TRUE
     Recursive TRUE
     Exec \$Message = \$raw_event;
-    Exec \$FileName = substr(file_name(), size("$TARGET_PATH")+1);
+    Exec \$FileName = substr(file_name(), ${TARGET_PREFIX_LEN});
     Exec \$Stream = "stdout";
     Exec to_json();
 </Input>
@@ -132,7 +155,7 @@ EOF
     SavePos TRUE
     Recursive TRUE
     Exec \$Message = \$raw_event;
-    Exec \$FileName = substr(file_name(), size("$TARGET_PATH")+1);
+    Exec \$FileName = substr(file_name(), ${TARGET_PREFIX_LEN});
     Exec \$Stream = "stderr";
     Exec to_json();
 </Input>
@@ -180,8 +203,8 @@ EOF
     SavePos TRUE
     Recursive TRUE
     Exec \$Message = \$raw_event;
-    Exec \$FileName = substr(file_name(), size("$TARGET_PATH")+1);
-    Exec \$Stream = "stdout";
+    Exec \$FileName = file_name();
+    Exec \$instId = "$GROUP";
     Exec to_json();
 </Input>
 
@@ -221,42 +244,62 @@ function start_service # ()
   fi
 }
 
-function install # (consumer, monitor_dir)
+function install # (consumer, monitor_dir, group)
 {
   if [ -d $NXLOG_ROOT ]; then
     echo "NXLog already installed in $NXLOG_ROOT"
   else
     install_nxlog
   fi
-  register_qubell_path ${1:-$NXLOG_CONSUMER} ${2:-$NXLOG_MONITOR_DIR}
-  compile_registry
+  register_qubell_path ${3:-default} ${1:-$NXLOG_CONSUMER} ${2:-$NXLOG_MONITOR_DIR}
+  apply_registry_changes
   start_service
 }
 
 ### main
 ###
 
-CMD=$1
-if [ "x$CMD" != "x" ] && declare -F $CMD 2>&1 1>/dev/null ; then
-  shift
-  $CMD "$@"
-else
+function help # ()
+{
   cat <<EOF
   Usage:
-    $0 install MONITOR_DIR
+    $0 COMMAND [ARGS ...] [-- COMMAND2 [ARGS ...] [-- COMMAND3 ...]]
+
+    $0 install CONSUMER_HOST MONITOR_DIR GROUP
         Install, configure and start nxlog.
 
     $0 start_service
         Start installed service.
 
     $0 show_registry
-    $0 register_qubell_path LOGGER_HOST PATH
-    $0 register_user_path LOGGER_HOST PATH [PATH...]
-    $0 deregister_path LOGGER_HOST PATH [PATH...]
+    $0 register_qubell_path [--apply-now] GROUP LOGGER_HOST PATH
+    $0 register_user_path [--apply-now] GROUP LOGGER_HOST PATH [PATH ...]
+    $0 deregister_path [--apply-now] GROUP [LOGGER_HOST PATH [PATH ...]]
         View and edit list of logged entities.
 
-    $0 compile_registry
+        GROUP is any string without spaces, which can be used to identify
+              related sets of paths. Inside one group, combinations
+              LOGGER_HOST - PATH are unique, duplicates will be ignored.
+
+
+    $0 apply_registry_changes
         Generates nxlog configuration from registry.
 
 EOF
+}
+
+while [ "x$1" != "x" ] && declare -F $1 2>&1 1>/dev/null ; do
+  CMD="$1"
+  shift
+  $CMD "$@"
+  while [ ! "x$1" == "x" ] && [ ! "x$1" == "x--" ]; do
+    shift
+  done
+  shift
+done
+
+# unexpected command found
+if [ ! "x$1" = "x" ]; then
+  help
+  exit 1
 fi
