@@ -288,6 +288,12 @@ function help # ()
 EOF
 }
 
+# no command provided
+if [ "x$1" == "x" ]; then
+  help
+  exit 1
+fi
+
 while [ "x$1" != "x" ] && declare -F $1 2>&1 1>/dev/null ; do
   CMD="$1"
   shift
@@ -299,7 +305,7 @@ while [ "x$1" != "x" ] && declare -F $1 2>&1 1>/dev/null ; do
 done
 
 # unexpected command found
-if [ ! "x$1" = "x" ]; then
+if [ ! "x$1" == "x" ]; then
   help
   exit 1
 fi
