@@ -11,7 +11,7 @@ set -E
 function detect_system # ()
 {
   if [ -f /etc/redhat-release ]; then
-    VER=$(cat /etc/redhat-release | sed -Ee 's/.*([0-9])\.[0-9].*/\1/g')
+    VER=$(cat /etc/redhat-release | sed -re 's/.*([0-9])\.[0-9].*/\1/g')
     echo centos-$VER-$(uname -m)
   else
     echo "Unsupported distro" 1>&2
