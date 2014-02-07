@@ -259,6 +259,7 @@ enableLogging:
             action: logging
             output:
               logger-host: logger-host
+              logger-repo: logger-repo
               cookbooks-version: cookbooks-version
 
         - start-logger:
@@ -268,10 +269,10 @@ enableLogging:
               roles: '{$.roles}'
               command:
                 - |
-                    curl -Lkso ~/.undeploy.me/nxlogmanage.sh http://qubell-logging.s3.amazonaws.com/{$.cookbooks-version}/setup-nxlog.sh
+                    curl -Lkso ~/.undeploy.me/nxlogmanage.sh {$.logger-repo}/{$.cookbooks-version}/setup-nxlog.sh
                     chmod a+x ~/.undeploy.me/nxlogmanage.sh
                     _INSTANCE_ID=$$(basename $$(dirname $$OUTPUT_DIR)) # TODO: hack!
-                    ~/.undeploy.me/nxlogmanage.sh install {$.logger-host} ~/.undeploy.me/$$_INSTANCE_ID $$_INSTANCE_ID
+                    NXLOG_RELEASE={$.cookbooks-version} NXLOG_REPO={$.logger-repo} ~/.undeploy.me/nxlogmanage.sh install {$.logger-host} ~/.undeploy.me/$$_INSTANCE_ID $$_INSTANCE_ID
 
     return:
         instance-dashboard:
@@ -344,6 +345,7 @@ deregisterLogPath:
 logging:
     parameters:
         logstash-host: {type: string, default: "localhost"}
+        nxlog-repo: {type: string, default: "http://qubell-logging.s3.amazonaws.com"}
         cookbooks-version: {type: string, default: "stable"}
     steps:
 
@@ -359,7 +361,8 @@ logging:
               format: JSON
               input: [
                 '{$.props}',
-                {"logstash-host": '{$.logstash-host}'}
+                {"logstash-host": '{$.logstash-host}'},
+                {"nxlog-repo": '{$.nxlog-repo}'}
               ]
             output:
               property-or-policy: serialized
@@ -373,8 +376,19 @@ logging:
             output:
               logstash-hosts: serialized
 
+        - choose-repo:
+            action: serialize
+            precedingPhases: [compute-properties]
+            parameters:
+              format: JSON
+              input: '{$.property-or-policy..nxlog-repo}'
+            output:
+              nxlog-repos: serialized
+
     return:
         logger-host:
           value: '{$.logstash-hosts[0]}'
+        logger-repo:
+          value: '{$.nxlog-repos[0]}'
         cookbooks-version:
           value: '{$.cookbooks-version}'

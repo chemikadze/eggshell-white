@@ -2,8 +2,8 @@ TMPDIR=${TMPDIR:-/tmp/}
 NXLOG_ROOT=${NXLOG_ROOT:-~/.undeploy.me/nxlog}
 NXLOG_MONITOR_DIR=${NXLOG_MONITOR_DIR:-~/.undeploy.me}
 NXLOG_CONSUMER=${NXLOG_CONSUMER:-localhost}
-NXLOG_RELEASE=${NXLOG_RELEASE:-latest}
-NXLOG_REPO=${NXLOG_REPO:-http://qubell-logging.s3.amazonaws.com/$NXLOG_RELEASE}
+NXLOG_RELEASE=${NXLOG_RELEASE:-stable}
+NXLOG_REPO=${NXLOG_REPO:-http://qubell-logging.s3.amazonaws.com}
 NXLOG_REGISTRY=${NXLOG_ROOT}/registry.txt
 
 set -E
@@ -25,7 +25,7 @@ function install_nxlog
   mkdir -p $NXLOG_ROOT/spool
   mkdir -p $NXLOG_ROOT/cache
   mkdir -p $NXLOG_ROOT/var
-  curl -Lkso $TMPDIR/nxlog.tar.gz $NXLOG_REPO/nxlog-static-$(detect_system).tar.gz
+  curl -Lkso $TMPDIR/nxlog.tar.gz $NXLOG_REPO/$NXLOG_RELEASE/nxlog-static-$(detect_system).tar.gz
   tar xzvpf $TMPDIR/nxlog.tar.gz -C $NXLOG_ROOT --strip-components=1
 }
 
