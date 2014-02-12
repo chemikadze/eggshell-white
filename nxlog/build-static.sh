@@ -25,6 +25,26 @@ OUTPUT_DIR=nxlog-static-$NXLOG_VERSION
 
 mkdir -p $BUILD_DIR
 
+function detect_system # ()
+{
+  ARCH=$(uname -m)
+  if [ -f /etc/redhat-release ]; then # redhat/centos
+    VER=$(cat /etc/redhat-release | sed -re 's/.*([0-9])\.[0-9].*/\1/g')
+    echo centos-$VER-$ARCH
+  elif [ -f /etc/debian_version ] && [ -f /etc/os-release ]; then # ubuntu
+    (
+      source /etc/os-release
+      if [ -n $ID ] && [ -n $VERSION_ID ]; then
+        echo $ID-$VERSION_ID-$ARCH | tr '[A-Z]' '[a-z]'
+      fi
+    )
+  elif which lsb_release 2>/dev/null 1>/dev/null; then
+    echo $(lsb_release -si)-$(lsb_release -sr)-$ARCH | tr '[A-Z]' '[a-z]'
+  else
+    echo unknown-1.0-$ARCH
+  fi
+}
+
 pushd $BUILD_DIR
 
 if [ "x$1" == "xfull" ]; then
@@ -122,4 +142,4 @@ EOF
 
 popd # build
 
-cp $BUILD_DIR/nxlog-ce-$NXLOG_VERSION/$OUTPUT_DIR.tar.gz .
+cp $BUILD_DIR/nxlog-ce-$NXLOG_VERSION/$OUTPUT_DIR.tar.gz nxlog-static-$(detect_system).tar.gz
