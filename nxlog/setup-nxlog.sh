@@ -10,10 +10,21 @@ set -E
 
 function detect_system # ()
 {
-  if [ -f /etc/redhat-release ]; then
+  ARCH=$(uname -m)
+  if [ -f /etc/redhat-release ]; then # redhat/centos
     VER=$(cat /etc/redhat-release | sed -re 's/.*([0-9])\.[0-9].*/\1/g')
-    echo centos-$VER-$(uname -m)
+    echo centos-$VER-$ARCH
+  elif [ -f /etc/debian_version ] && [ -f /etc/os-release ]; then # ubuntu
+    (
+      source /etc/os-release
+      if [ -n $ID ] && [ -n $VERSION_ID ]; then
+        echo $ID-$VERSION_ID-$ARCH | tr '[A-Z]' '[a-z]'
+      fi
+    )
+  elif which lsb_release 2>/dev/null 1>/dev/null; then
+    echo $(lsb_release -si)-$(lsb_release -sr)-$ARCH | tr '[A-Z]' '[a-z]'
   else
+    echo unknown-1.0-$ARCH
     echo "Unsupported distro" 1>&2
     exit 1
   fi
@@ -25,7 +36,9 @@ function install_nxlog
   mkdir -p $NXLOG_ROOT/spool
   mkdir -p $NXLOG_ROOT/cache
   mkdir -p $NXLOG_ROOT/var
-  curl -Lkso $TMPDIR/nxlog.tar.gz $NXLOG_REPO/$NXLOG_RELEASE/nxlog-static-$(detect_system).tar.gz
+  NXLOG_TARBALL_URL=$NXLOG_REPO/$NXLOG_RELEASE/nxlog-static-$(detect_system).tar.gz
+  echo "Downloading pre-built nxlog $NXLOG_TARBALL_URL"
+  curl -Lkso $TMPDIR/nxlog.tar.gz $NXLOG_TARBALL_URL
   tar xzvpf $TMPDIR/nxlog.tar.gz -C $NXLOG_ROOT --strip-components=1
 }
 
