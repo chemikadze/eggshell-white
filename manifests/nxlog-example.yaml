@@ -258,8 +258,8 @@ enableLogging:
         - resolve-logger:
             action: logging
             output:
-              logger-host: logger-host
-              logger-repo: logger-repo
+              logstash-host: logstash-host
+              nxlog-repo: nxlog-repo
               cookbooks-version: cookbooks-version
 
         - start-logger:
@@ -269,14 +269,14 @@ enableLogging:
               roles: '{$.roles}'
               command:
                 - |
-                    curl -Lkso ~/.undeploy.me/nxlogmanage.sh {$.logger-repo}/{$.cookbooks-version}/setup-nxlog.sh
+                    curl -Lkso ~/.undeploy.me/nxlogmanage.sh {$.nxlog-repo}/{$.cookbooks-version}/setup-nxlog.sh
                     chmod a+x ~/.undeploy.me/nxlogmanage.sh
                     _INSTANCE_ID=$$(basename $$(dirname $$OUTPUT_DIR)) # TODO: hack!
-                    NXLOG_RELEASE={$.cookbooks-version} NXLOG_REPO={$.logger-repo} ~/.undeploy.me/nxlogmanage.sh install {$.logger-host} ~/.undeploy.me/$$_INSTANCE_ID $$_INSTANCE_ID
+                    NXLOG_RELEASE={$.cookbooks-version} NXLOG_REPO={$.nxlog-repo} ~/.undeploy.me/nxlogmanage.sh install {$.logstash-host} ~/.undeploy.me/$$_INSTANCE_ID $$_INSTANCE_ID
 
     return:
         instance-dashboard:
-          value: "http://{$.logger-host}/kibana/index.html#/dashboard/file/logstash.json"
+          value: "http://{$.logstash-host}/kibana/index.html#/dashboard/file/logstash.json"
 
 disableLogging:
     parameters:
@@ -289,7 +289,7 @@ disableLogging:
         - resolve-logger:
             action: logging
             output:
-              logger-host: logger-host
+              logstash-host: logstash-host
               cookbooks-version: cookbooks-version
 
         - cleanup-registry:
@@ -309,7 +309,7 @@ registerLogPath:
         - resolve-logger:
             action: logging
             output:
-              logger-host: logger-host
+              logstash-host: logstash-host
               cookbooks-version: cookbooks-version
 
         - register-path:
@@ -318,7 +318,7 @@ registerLogPath:
             parameters:
               roles: '{$.roles}'
               command:
-                - '~/.undeploy.me/nxlogmanage.sh register_user_path --apply-now "$$(basename $$(dirname $$OUTPUT_DIR))" "{$.logger-host}"'
+                - '~/.undeploy.me/nxlogmanage.sh register_user_path --apply-now "$$(basename $$(dirname $$OUTPUT_DIR))" "{$.logstash-host}"'
               args: '{$.paths}'
 
 deregisterLogPath:
@@ -330,7 +330,7 @@ deregisterLogPath:
         - resolve-logger:
             action: logging
             output:
-              logger-host: logger-host
+              logstash-host: logstash-host
               cookbooks-version: cookbooks-version
 
         - deregister-path:
@@ -339,14 +339,14 @@ deregisterLogPath:
             parameters:
               roles: '{$.roles}'
               command:
-                - '~/.undeploy.me/nxlogmanage.sh deregister_path --apply-now "$$(basename $$(dirname $$OUTPUT_DIR))" "{$.logger-host}"'
+                - '~/.undeploy.me/nxlogmanage.sh deregister_path --apply-now "$$(basename $$(dirname $$OUTPUT_DIR))" "{$.logstash-host}"'
               args: '{$.paths}'
 
 logging:
     parameters:
-        logstash-host: {type: string, default: "localhost"}
-        nxlog-repo: {type: string, default: "http://qubell-logging.s3.amazonaws.com"}
-        cookbooks-version: {type: string, default: "stable"}
+        logger-host: {type: string, default: "localhost"}
+        logger-repo: {type: string, default: "http://qubell-logging.s3.amazonaws.com"}
+        logger-version: {type: string, default: "stable"}
     steps:
 
         - get-properties:
@@ -361,8 +361,8 @@ logging:
               format: JSON
               input: [
                 '{$.props}',
-                {"logstash-host": '{$.logstash-host}'},
-                {"nxlog-repo": '{$.nxlog-repo}'}
+                {"logger-host": '{$.logger-host}'},
+                {"logger-repo": '{$.logger-repo}'}
               ]
             output:
               property-or-policy: serialized
@@ -372,23 +372,23 @@ logging:
             precedingPhases: [compute-properties]
             parameters:
               format: JSON
-              input: '{$.property-or-policy..logstash-host}'
+              input: '{$.property-or-policy..logger-host}'
             output:
-              logstash-hosts: serialized
+              logger-hosts: serialized
 
         - choose-repo:
             action: serialize
             precedingPhases: [compute-properties]
             parameters:
               format: JSON
-              input: '{$.property-or-policy..nxlog-repo}'
+              input: '{$.property-or-policy..logger-repo}'
             output:
-              nxlog-repos: serialized
+              logger-repos: serialized
 
     return:
-        logger-host:
-          value: '{$.logstash-hosts[0]}'
-        logger-repo:
-          value: '{$.nxlog-repos[0]}'
+        logstash-host:
+          value: '{$.logger-hosts[0]}'
+        nxlog-repo:
+          value: '{$.logger-repos[0]}'
         cookbooks-version:
-          value: '{$.cookbooks-version}'
+          value: '{$.logger-version}'
