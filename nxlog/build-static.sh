@@ -2,7 +2,8 @@ set -e
 
 ROOT=$(pwd)
 NXLOG_VERSION=2.5.1089
-NXLOG_SRC="http://downloads.sourceforge.net/project/nxlog-ce/nxlog-ce-$NXLOG_VERSION.tar.gz"
+# NXLOG_SRC="http://downloads.sourceforge.net/project/nxlog-ce/nxlog-ce-$NXLOG_VERSION.tar.gz"
+NXLOG_SRC="https://s3.amazonaws.com/qubell-logging/nxlog-ce-$NXLOG_VERSION.tar.gz"
 
 APR_VERSION=1.4.8
 APR_SRC="http://archive.apache.org/dist/apr/apr-$APR_VERSION.tar.gz"
