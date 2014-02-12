@@ -1,15 +1,15 @@
 all: target pack_cookbooks javascript
 
 upload_as_latest: all
-	./upload-assets.sh latest
+	./upload-assets.sh --nxlog-scripts --widgets --manifests --cookbooks latest
 .PHONY: upload_latest
 
 upload_as_stable: all
-	./upload-assets.sh stable
+	./upload-assets.sh --nxlog-scripts --widgets --manifests --cookbooks stable
 .PHONY: upload_stable
 
 upload_new_version: all
-	./upload-assets.sh -f $(shell git log -n 1 --pretty=format:%h)
+	./upload-assets.sh -f --nxlog-scripts --widgets --manifests --cookbooks $(shell git log -n 1 --pretty=format:%h)
 .PHONY: upload_new_version
 
 pack_cookbooks: target/logstash.tar.gz target/nxlog.tar.gz
