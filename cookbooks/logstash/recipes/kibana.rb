@@ -36,7 +36,7 @@ bash "install kibana" do
 end
 
 remote_file "#{Chef::Config[:file_cache_path]}/kibana.tar.gz" do
-  source "http://github.com/elasticsearch/kibana/archive/#{node['kibana']['version']}.tar.gz"
+  source "https://github.com/elasticsearch/kibana/archive/#{node['kibana']['version']}.tar.gz"
   notifies :run, "bash[install kibana]", :immediately
 end
 
