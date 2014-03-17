@@ -12,6 +12,9 @@ default['logstash']['ssl_certificate']        = '/var/lib/logstash/server.pem'
 default['logstash']['ssl_certificate_key']    = '/var/lib/logstash/server.key'
 default['logstash']['loglevel']               = 'INFO' # ERROR, INFO, VERBOSE, TRACE
 default['logstash']['extra_args']             = []
+default['logstash']['amqp_url']               = nil
+default['logstash']['amqp_queue']             = nil
+default['logstash']['amqp_exchange']          = nil
 
 default['elasticsearch']['serve_ssl']           = false
 default['elasticsearch']['proxy_port']          = 9201

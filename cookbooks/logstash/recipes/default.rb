@@ -1,5 +1,7 @@
 # Install logstash standalone
 
+require 'uri'
+require 'open-uri'
 include_recipe "java"
 include_recipe "logstash::kibana"
 include_recipe "logstash::elasticsearch_site"
@@ -58,11 +60,32 @@ remote_file "#{rootdir}/logstash.jar" do
   action :create
 end
 
+
+inputs = []
+if node['logstash']['amqp_url'] then
+  amqp_uri = URI(node['logstash']['amqp_url'])
+  inputs.push "rabbitmq" => {
+    :host => amqp_uri.host,
+    :port => (amqp_uri.port or 5261),
+    :user => (amqp_uri.user or "guest"),
+    :password => (amqp_uri.password or "guest"),
+    :vhost => URI::decode(amqp_uri.path[1..-1]),
+    :type => "portal",
+    :queue => node['logstash']['amqp_queue'],
+    :passive => true,
+    :durable => true,
+    :auto_delete => false,
+    :exclusive => false,
+    :ssl => false
+  }
+end
+
 template "#{rootdir}/logstash.conf" do
   owner node.logstash.user
   group node.logstash.group
   mode "0644"
   source "logstash.conf.erb"
+  variables "inputs" => inputs
 end
 
 elasticsearch_settings = []

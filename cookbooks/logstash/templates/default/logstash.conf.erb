@@ -10,6 +10,15 @@ input {
     ssl_verify => false
     type => "nxlog"
   }
+  <% @inputs.each do |input_map| %>
+    <% input_map.each do |input_type, input_body| %>
+      <%= input_type %> {
+        <% input_body.each do |key, value| %>
+          <%= key %> => <%= value.inspect %>
+        <% end %>
+      }
+    <% end %>
+  <% end %>
 }
 filter {
   date {
