@@ -51,7 +51,7 @@ bash "generate logstash certificate" do
 end
 
 remote_file "#{rootdir}/logstash.jar" do
-  source "http://logstash.objects.dreamhost.com/release/logstash-1.1.13-flatjar.jar"
+  source "https://download.elasticsearch.org/logstash/logstash/logstash-#{node['logstash']['version']}-flatjar.jar"
   owner node.logstash.user
   group node.logstash.group
   mode "0644"

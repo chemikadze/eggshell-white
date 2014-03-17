@@ -1,7 +1,9 @@
 oldGetWidgetName = app.propertyWidgets.getWidgetName
 
 app.propertyWidgets.getWidgetName = function(instance, returnValue, userValue) {
-  if (returnValue.id.indexOf && returnValue.id.indexOf("kibana-instance-dashboard") >= 0) {
+  if (returnValue.id.indexOf &&
+      (returnValue.id.indexOf("kibana-instance-dashboard") >= 0 ||
+       returnValue.id.indexOf("logging-dashboard") >= 0)) {
     return 'KibanaLogs'
   } else if (oldGetWidgetName) {
     return oldGetWidgetName(instance, returnValue, userValue)
@@ -35,11 +37,11 @@ app.propertyWidgets.KibanaLogs = (function() {
   function elasticsearchMetaForInstance(client, instanceId, onSuccess, onFailure) {
     // TODO: this is heavy, should use simple facet without script
     var request = client.Request()
-      .query(client.QueryStringQuery("@fields.instId:\"" + instanceId + "\""))
+      .query(client.QueryStringQuery("instId:\"" + instanceId + "\""))
       .size(0)
-      .facet(client.TermsFacet("steps").script("_source[\"@fields\"][\"stepname\"]"))
-      .facet(client.TermsFacet("jobs").script("_source[\"@fields\"][\"jobId\"]"))
-      .facet(client.TermsFacet("vms").script("_source[\"@source_host\"]"));
+      .facet(client.TermsFacet("steps").script("_source[\"stepname\"]"))
+      .facet(client.TermsFacet("jobs").script("_source[\"jobId\"]"))
+      .facet(client.TermsFacet("vms").script("_source[\"host\"]"));
 
     request.doSearch(
       function(r) {
@@ -250,11 +252,11 @@ app.propertyWidgets.KibanaLogs = (function() {
     }
   }
 
-  var filterVms = fieldFilter('@source_host');
+  var filterVms = fieldFilter('host');
 
-  var filterSteps = fieldFilter('@fields.stepname');
+  var filterSteps = fieldFilter('stepname');
 
-  var filterJobs = fieldFilter('@fields.jobId');
+  var filterJobs = fieldFilter('jobId');
 
   function withFilters(dashboard, filters) {
     var dashFilters = dashboard['services']['filter'];
@@ -458,8 +460,8 @@ app.propertyWidgets.KibanaLogs = (function() {
                           "field_list": false,
                           "fields": [
                               "@timestamp",
-                              "@fields.stepname",
-                              "@source_host",
+                              "stepname",
+                              "host",
                               "@severity",
                               "@message"
                           ],
@@ -529,7 +531,7 @@ app.propertyWidgets.KibanaLogs = (function() {
                           "alias": "",
                           "id": 1,
                           "mandate": "must",
-                          "query": "@fields.instId:\"" + instance.id + "\"",
+                          "query": "instId:\"" + instance.id + "\"",
                           "type": "querystring"
                       }
                   }

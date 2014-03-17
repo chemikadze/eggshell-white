@@ -70,16 +70,22 @@ filter {
     add_field => [ "MessageTxt", "%{Message}" ]
   }
 
+  grok {
+    type => "nxlog"
+    match => [ "host", "%{IPORHOST:parsed_host}(:${POSINT})?" ]
+  }
+
   mutate {
       type => "nxlog"
       replace => [ "@severity", "%{Severity}" ]
       replace => [ "@message", "%{MessageTxt}" ]
       replace => [ "@raw", "%{Message}" ]
+      replace => [ "host", "%{parsed_host}" ]
   }
 
   mutate {
       type => "nxlog"
-      remove => [ "Message", "MessageTxt", "Severity", "SourceModuleType", "SourceModuleName", "EventReceivedTime", "FileName", "@source_path", "@source" ]
+      remove => [ "Message", "MessageTxt", "Severity", "SourceModuleType", "SourceModuleName", "EventReceivedTime", "FileName", "@source_path", "@source", "parsed_host" ]
   }
 
 }
