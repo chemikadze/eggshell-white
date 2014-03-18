@@ -1,0 +1,20 @@
+language: python
+script: ./build.sh
+python: 
+- "2.7"
+before_script: 
+- gem install travis-artifacts --no-ri --no-rdoc
+- git submodule update --init --recursive
+env: 
+  global: 
+  - secure: MVq80nkHtUMeryZILmggntmHaxLgn2Hn5WZCYOonOE2Fmw6j9Fni+f5dG0LftkfA09QvAf0JZQ4cMwIr6E85dSFr+2UTH3Kx43G1BA7euFrt4EGtZMT/xEu/Xp83dJsQ7nszOKXBD5mD3wwzLVAvxKoZOQ0U7g7ADW9E55qSd4Y=
+  - secure: Ws0mlf4POQYsdfoDo4sjEE2875AK7ezOJ79tqT16/9Whrp8fbLt9WEAD6miKFNwp5pZJTHnUypaUzEpZ3oMCnp5qQO9/eD5EWkBt9A8eN/m93VlDP9uO0ioZM3thq2KnGdiosGO56yRcNhk3YOYTCSdLdS8T+P4pFuEs/BH4Eaw=
+  - secure: a4vG2Cvkppy8c2W92/d6fztuSWRW7SGmDobZPC8gNmWFicpOhMOmXemuBr52jNql8ulJTI/XPOyxx3XP4bX4D3hzSIwBtZk4Rjmel4tHFz8chlJ3zm83Gao00PclywtIETZB982HT64nwPrQe87EQKNl2zmvKEmm5tnNO84da/k=
+  - secure: d5ga+6cnAfOut0ECugccw3o7e1e0I7a1gE8tWaIxlQwWi75qn015jhNGvpweHnVmx6nn5wg1uyyoQW+ZsyR32t8KX0WqO3VdQwjfGjtO1QOAqlPrInbI4OkOBVEOFxE6X6EqFgyLtbVTTSTkjcreBUSXU8fqk1c/58E4wzGX0TQ=
+  - secure: kPuphWcRBZ+Ci8jau8YqhlZLZplHoxiK3PjGImmbFp/1gBz5c15xxoXPQRkEKBbGfUvBFKDJYNlbjbGHC3u0lnr1Q2tTpLInoTzqpQQUE8ZglgKJqJAdCnk34xqujxHOSY0/a+23u82C+2GNCvPV1u7w3JPGZ6jz22Mtz13559A=
+  - secure: PZ1tm0mAuJelInVNdq1ppwrpHAnLbwSyeOcbOkmONhI2PfiZyKKO22kraVDEM0YSvTi5bBCKx8p0b63DyMgDF4G7b1EWxlb0Ab8rW6KojjpULg5ORUzKHAJRdUPbG/ZijYOsxiXgqV+BGFE6Hdoi7PV1oVvoKk+jRl0+HeM4sE4=
+  - secure: Uvrk2/vewFXziAG1WkYaEp4NQ1d3kPr5mkFnjiAQ4WneOOrBnkXBOL3/gtw3GYe759SrLCYgeNUKLKy3jYcJjqQOSV/bMLseOvxHdc7p4t8Axra+VH+/7y8q1vU5qVEEsnDT/dqvuSb24iGVO9+K9wfohhTPHt/YLcVShC5+i1k=
+  - secure: PBVFa77K2wt/Iju7PZR+7k+3mlAumS4Glhn4/jCatlbdHOffGdJU5T9pQ0LfShUkml3btRHy2u1A0POiNHlOmfFFy+uWOHOtMVCoCkKanSvcKJpUA1bSjWRJSrVwqQOdV0nQn1wRiF9e0rezIF7DdC/hDrRxslMEc3ha54CQAxA=
+  - secure: jY6vj6RyhxH5x8mb2ZLEBBGqit6AE7VmRyUx2sRuGpJHeXoxkc43lrFSHtQ2CEfNRYLAJRCsC0yDyOL3opDrWeW6f87ccGkqX5F+S2TYSSw6s/gE/3ZNNCBGDOySA2GIF1E05dzJ3UAB0qN7RmruvgZaqQ80y+A6gVfX7cFdi40=
+  - secure: NYZFNMukbzanzPwwB3OsAndZa8Bc9xt3dcz385TDcXjBcIhBFLr2RcdHQjQCIp5nFhitQ9HOaFYYk6x31wLqSid66vqb915bz3FilT2G24QKnAanHMh2VGaMbjSVvvSGlRkmy/7r+aVQZSdF1OFPRzHYzA3OEje1SY0NyOWlxtQ=
+install: pip install -r test/requirements.txt
