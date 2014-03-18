@@ -1,75 +1,91 @@
-launch:
-    parameters:
-        logging-cookbooks-version:
-          type: string
-          default: latest
-        vm-user:
-          type: string
-          default: ec2-user
-        vm-group:
-          type: string
-          default: ec2-user
-    steps:
-        - init-consumer:
-              action: provisionVms
-              phase: "init-consumer"
-              parameters:
-                  hardwareId: "m1.small"
-                  roleName: consumer
-                  vmIdentity: "{$.vm-user}"
-                  imageId: us-east-1/ami-3ecd1e57
-                  hardwareId: m1.medium
-              output:
-                consumerips: ips
+application:
 
-        - start-consumer:
-            action: .install-logger
-            precedingPhases: [ init-consumer ]
-            phase: "start-consumer"
-            parameters:
-              vm-user: "{$.vm-user}"
-              vm-group: "{$.vm-group}"
+    interfaces:
+        configuration:
+            logging-cookbooks-version: bind(logstash#input.logging-cookbooks-version)
+            vm-user:  bind(logstash#input.vm-user)
+            vm-group: bind(logstash#input.vm-group)
+        logger:
+            logger-server:     bind(logstash#result.logstash-host)
+            kibana-dashboard:  bind(logstash#result.kibana-dashboard)
 
-    return:
-        logstash-host:
-            description: Logstash host
-            value: "{$.consumerips[0]}"
-        kibana-dashboard:
-            description: Kibana UI
-            value: "http://{$.consumerips[0]}/kibana/"
+    configuration:
+        configuration.logging-cookbooks-version: "stable"
+        configuration.vm-user:  "ec2-user"
+        configuration.vm-group: "ec2-user"
+
+    components:
+
+        logstash:
+            type: workflow.Instance
+            interfaces:
+                input:
+                    logging-cookbooks-version: configuration(string)
+                    vm-user: configuration(string)
+                    vm-group: configuration(string)
+                result:
+                    logstash-host:    publish-signal(string)
+                    kibana-dashboard: publish-signal(string)
+            configuration:
+                configuration.workflows:
+                    launch:
+                        steps:
+
+                            - init-consumer:
+                                action: provisionVms
+                                parameters:
+                                    hardwareId: "m1.small"
+                                    roleName: consumer
+                                    vmIdentity: "{$.vm-user}"
+                                    imageId: us-east-1/ami-3ecd1e57
+                                output:
+                                  consumerips: ips
+
+                            - start-consumer:
+                                action: .install-logger
+                                precedingPhases: [ init-consumer ]
+                                parameters:
+                                  vm-user: "{$.vm-user}"
+                                  vm-group: "{$.vm-group}"
+
+                        return:
+                            logstash-host:
+                                description: Logstash host
+                                value: "{$.consumerips[0]}"
+                            kibana-dashboard:
+                                description: Kibana UI
+                                value: "http://{$.consumerips[0]}/kibana/"
 
 
-.install-logger: &INSTALL
-    parameters:
-        logging-cookbooks-version:
-          type: string
-          default: latest
-        vm-user:
-          type: string
-          default: ec2-user
-        vm-group:
-          type: string
-          default: ec2-user
-    steps:
-      - install-logger:
-          action: chefsolo
-          parameters:
-            phase: "start-consumer"
-            roles: [ consumer ]
-            precedingPhases: [ ]
-            recipeUrl: "http://qubell-logging.s3.amazonaws.com/{$.logging-cookbooks-version}/logstash.tar.gz"
-            runList: [ "recipe[logstash]", "recipe[logstash::kibana]" ]
-            jattrs:
-              logstash:
-                user: "{$.vm-user}"
-                group: "{$.vm-group}"
+                    .install-logger: &INSTALL
+                        parameters:
+                            logging-cookbooks-version:
+                                type: string
+                                default: latest
+                            vm-user:
+                                type: string
+                                default: ec2-user
+                            vm-group:
+                                type: string
+                                default: ec2-user
+                        steps:
+                            - install-logger:
+                                action: chefrun
+                                parameters:
+                                    isSolo: true
+                                    roles: [ consumer ]
+                                    recipeUrl: "http://qubell-logging.s3.amazonaws.com/{$.logging-cookbooks-version}/logstash.tar.gz"
+                                    runList: [ "recipe[logstash]", "recipe[logstash::kibana]" ]
+                                    jattrs:
+                                        logstash:
+                                            user: "{$.vm-user}"
+                                            group: "{$.vm-group}"
 
-update:
-  <<: *INSTALL
+                    update: *INSTALL
 
-destroy:
-        steps:
-        - destroy-vm:
-            action: undeployEnv
-            parameters:
-                phase: destroy
+                    destroy:
+                        steps:
+                            - destroy-vm:
+                                action: undeployEnv
+                                parameters:
+                                    phase: destroy

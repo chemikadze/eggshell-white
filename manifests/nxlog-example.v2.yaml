@@ -7,28 +7,23 @@ application:
         actions:
             do-something: bind(workflow#actions.do-something)
             do-empty-chef-run: bind(workflow#actions.do-empty-chef-run)
-            update-logger: bind(workflow#actions.update-logger)
         result:
             vms:                       bind(workflow#result.vms)
-            kibana-instance-dashboard: bind(workflow#result.kibana-instance-dashboard)
+            logging-dashboard: bind(workflow#result.logging-dashboard)
+
+    bindings:
+        - [ logging, workflow ]
 
     configuration:
         input.logger-num: 2
 
     components:
 
-        wfService:
-          type: reference.Service
-          interfaces:
-            executor:
-              execute-workflow:    receive-command(object request => object status => object status)
-              execute-command:     send-command(string interface, string command, map<string, object> arguments => map<string, object> response => map<string, object> response)
-
-        secureStore:
-          type: reference.Service
-          interfaces:
-            keypair-store:
-              get-keypair:         receive-command(string id => object privateKey)
+        logging:
+            type: reference.Service
+            interfaces:
+                logger:
+                    logger-server:   publish-signal(string)
 
         workflow:
             type: workflow.Instance
@@ -38,19 +33,14 @@ application:
                 actions:
                     do-something:      receive-command(string command => object stdout => object stderr)
                     do-empty-chef-run: receive-command(string logger-cookbooks-version => object chefState)
-                    update-logger:     receive-command()
-                keypair-store:
-                    get-keypair:       send-command(string id => object privateKey)
+                logger:
+                    logger-server: consume-signal(string)
                 result:
                     vms:                       publish-signal(list<string>)
-                    kibana-instance-dashboard: publish-signal(string)
-            required: [keypair-store]
+                    logging-dashboard: publish-signal(string)
+            required: [logger]
             configuration:
                 configuration.workflows:
-
-                    # requires environtment policy:
-                    #   action: logging
-                    #   value:  logger-host
 
                     launch:
                         parameters:
@@ -62,31 +52,31 @@ application:
                         steps:
 
                             - provision-vm:
-                                  action: provisionVmsWithLogging
-                                  phase: provision-vm
-                                  parameters:
-                                      quantity: "{$.logger-num}"
-                                      hardwareId: "m1.small"
-                                      roleName: logger
-                                      vmIdentity: ec2-user
-                                      imageId: us-east-1/ami-3ecd1e57
-                                  output:
+                                action: provisionVmsWithLogging
+                                phase: provision-vm
+                                parameters:
+                                    quantity: "{$.logger-num}"
+                                    hardwareId: "m1.small"
+                                    roleName: logger
+                                    vmIdentity: ec2-user
+                                    imageId: us-east-1/ami-3ecd1e57
+                                output:
                                     loggerips: ips
-                                    instance-dashboard: instance-dashboard
+                                    logging-dashboard: logging-dashboard
 
                             - do-something:
-                                  action: do-something
-                                  precedingPhases: [ provision-vm ]
-                                  parameters: {}
+                                action: do-something
+                                precedingPhases: [ provision-vm ]
+                                parameters: {}
 
                         return:
                             vms:
                                 description: VMs
                                 value: "{$.loggerips}"
                             # ADD TO YOUR MANIFEST this return value should present to get rendered widget with link
-                            kibana-instance-dashboard:
+                            logging-dashboard:
                                 description: Logging Dashboard for instance
-                                value: "{$.instance-dashboard}"
+                                value: "{$.logging-dashboard}"
 
                     do-something:
                         parameters:
@@ -100,17 +90,17 @@ application:
                                 phase: "run-command"
                                 precedingPhases: [  ]
                                 parameters:
-                                  roles: [ logger ]
-                                  command:
-                                    - "{$.command}"
+                                    roles: [ logger ]
+                                    command:
+                                        - "{$.command}"
                                 output:
-                                  stdout: stdout
-                                  stderr: stderr
+                                    stdout: stdout
+                                    stderr: stderr
                         return:
-                          stdout:
-                            value: "{$.stdout}"
-                          stderr:
-                            value: "{$.stderr}"
+                            stdout:
+                                value: "{$.stdout}"
+                            stderr:
+                                value: "{$.stderr}"
 
 
                     do-empty-chef-run:
@@ -125,26 +115,15 @@ application:
                                 phase: "dummy-chefrun"
                                 precedingPhases: [ ]
                                 parameters:
-                                  roles: [ logger ]
-                                  recipeUrl: "http://qubell-logging.s3.amazonaws.com/{$.logger-cookbooks-version}/nxlog.tar.gz"
-                                  runList: [ ]
-                                  jattrs: {}
+                                    roles: [ logger ]
+                                    recipeUrl: "http://qubell-logging.s3.amazonaws.com/{$.logger-cookbooks-version}/nxlog.tar.gz"
+                                    runList: [ ]
+                                    jattrs: {}
                                 output:
-                                  chefState: chefState
+                                    chefState: chefState
                         return:
                             chefState:
-                              value: "{$.chefState}"
-
-
-                    update-logger:
-                        steps:
-
-                          - enable-logging:
-                              action: enable-logging
-                              phase: enable-logging
-                              parameters:
-                                vms: "{$.vms}"
-                                vmIdentity: ec2-user
+                                value: "{$.chefState}"
 
 
                     destroy:
@@ -153,287 +132,3 @@ application:
                             action: undeployEnv
                             parameters:
                                 phase: destroy
-
-
-                    # OPTIONAL MACRO WRAPPING PROVISION
-                    provisionVmsWithLogging:
-                        parameters:
-                            retryCount:
-                              type: int
-                              default: 0
-                              min: 0
-                            roleName:
-                              type: string
-                              default: "default"
-                              length: {min: 1}
-                            hardwareId:
-                              type: string
-                              length: {min: 1}
-                            imageId:
-                              type: string
-                              default: ""
-                            quantity:
-                              type: int
-                              min: 1
-                              default: 1
-                            targetQuantity:
-                              type: int
-                              default: -1
-                            instanceId:
-                              type: string
-                              default: ""
-                            staticIps:
-                              default: ""
-                            # This parameter is obsolete. Use "staticIps" instead.
-                            ip:
-                              type: string
-                              default: ""
-                            jcloudsProvider:
-                              type: string
-                              length: {min: 1}
-                              default: "stub"
-                            jcloudsEndpoint:
-                              type: string
-                              length: {min: 1}
-                              default: "stub"
-                            jcloudsIdentity:
-                              type: string
-                              length: {min: 1}
-                              default: "stub"
-                            jcloudsCredential:
-                              type: string
-                              length: {min: 1}
-                              default: "stub"
-                            jcloudsNodeNamePrefix:
-                              type: string
-                              length: {min: 1}
-                              default: "GN"
-                            jcloudsRegions:
-                              type: string
-                              default: ""
-                            # parameters ec2SecurityGroup and subnetId are mutual exclusive.
-                            # If subnetId is set ec2SecurityGroup is ignored.
-                            ec2SecurityGroup:
-                              type: string
-                              default: "default"
-                            subnetId:
-                              type: string
-                              default: ""
-                            vmIdentity:
-                              type: string
-                              default: "root"
-                            vmPassword:
-                              type: string
-                              default: ""
-                            vmCredentialResource:
-                              type: string
-                              default: "/environments/undeploy-me.pem"
-                              length: {min: 1}
-                            useSecureCredentialsStore:
-                              type: bool
-                              default: false
-                            providerSettings:
-                              type: map
-                              default: {}
-
-
-                        steps:
-
-                            - wrapped-provision-vms:
-                                  action: provisionVms
-                                  phase: provision
-                                  parameters:
-                                      retryCount: "{$.retryCount}"
-                                      instanceId: "{$.instanceId}"
-                                      ip: "{$.ip}"
-                                      targetQuantity: "{$.targetQuantity}"
-                                      imageId: "{$.imageId}"
-                                      jcloudsRegions: "{$.jcloudsRegions}"
-                                      subnetId: "{$.subnetId}"
-                                      vmIdentity: "{$.vmIdentity}"
-                                      hardwareId: "{$.hardwareId}"
-                                      providerSettings: "{$.providerSettings}"
-                                      jcloudsIdentity: "{$.jcloudsIdentity}"
-                                      jcloudsCredential: "{$.jcloudsCredential}"
-                                      vmPassword: "{$.vmPassword}"
-                                      useSecureCredentialsStore: "{$.useSecureCredentialsStore}"
-                                      jcloudsProvider: "{$.jcloudsProvider}"
-                                      staticIps: "{$.staticIps}"
-                                      jcloudsNodeNamePrefix: "{$.jcloudsNodeNamePrefix}"
-                                      ec2SecurityGroup: "{$.ec2SecurityGroup}"
-                                      vmCredentialResource: "{$.vmCredentialResource}"
-                                      roleName: "{$.roleName}"
-                                      jcloudsEndpoint: "{$.jcloudsEndpoint}"
-                                      quantity: "{$.quantity}"
-                                  output:
-                                    ips: ips
-                                    privateips: privateips
-
-                            - enable-logging:
-                                action: enableLogging
-                                phase: enable-logging
-                                precedingPhases: [ provision ]
-                                parameters:
-                                  roles: [ '{$.roleName}' ]
-                                output:
-                                  instance-dashboard: instance-dashboard
-
-                        return:
-                            ips:
-                              value: "{$.ips}"
-                            privateips:
-                              value: "{$.privateips}"
-                            instance-dashboard:
-                              value: "{$.instance-dashboard}"
-
-                    enableLogging:
-                        parameters:
-                            roles:
-                              description: "List of roles to install and configure nxlog"
-                              type: list
-
-                        steps:
-
-                            - resolve-logger:
-                                action: logging
-                                output:
-                                  logstash-host: logstash-host
-                                  nxlog-repo: nxlog-repo
-                                  cookbooks-version: cookbooks-version
-
-                            - start-logger:
-                                action: execrun
-                                precedingPhases: [resolve-logger]
-                                parameters:
-                                  roles: '{$.roles}'
-                                  command:
-                                    - |
-                                        curl -Lkso ~/.undeploy.me/nxlogmanage.sh {$.nxlog-repo}/{$.cookbooks-version}/setup-nxlog.sh
-                                        chmod a+x ~/.undeploy.me/nxlogmanage.sh
-                                        _INSTANCE_ID=$$(basename $$(dirname $$OUTPUT_DIR)) # TODO: hack!
-                                        NXLOG_RELEASE={$.cookbooks-version} NXLOG_REPO={$.nxlog-repo} ~/.undeploy.me/nxlogmanage.sh install {$.logstash-host} ~/.undeploy.me/$$_INSTANCE_ID $$_INSTANCE_ID
-
-                        return:
-                            instance-dashboard:
-                              value: "http://{$.logstash-host}/kibana/index.html#/dashboard/file/logstash.json"
-
-                    disableLogging:
-                        parameters:
-                            roles:
-                              description: "List of roles to install and configure nxlog"
-                              type: list
-
-                        steps:
-
-                            - resolve-logger:
-                                action: logging
-                                output:
-                                  logstash-host: logstash-host
-                                  cookbooks-version: cookbooks-version
-
-                            - cleanup-registry:
-                                action: execrun
-                                precedingPhases: [resolve-logger]
-                                parameters:
-                                  roles: '{$.roles}'
-                                  command:
-                                    - '~/.undeploy.me/nxlogmanage.sh deregister_path --apply-now "$$(basename $$(dirname $$OUTPUT_DIR))"'
-
-                    registerLogPath:
-                        parameters:
-                            roles: {type: list}
-                            paths: {type: list}
-                        steps:
-
-                            - resolve-logger:
-                                action: logging
-                                output:
-                                  logstash-host: logstash-host
-                                  cookbooks-version: cookbooks-version
-
-                            - register-path:
-                                action: execrun
-                                precedingPhases: [resolve-logger]
-                                parameters:
-                                  roles: '{$.roles}'
-                                  command:
-                                    - '~/.undeploy.me/nxlogmanage.sh register_user_path --apply-now "$$(basename $$(dirname $$OUTPUT_DIR))" "{$.logstash-host}"'
-                                  args: '{$.paths}'
-
-                    deregisterLogPath:
-                        parameters:
-                            roles: {type: list}
-                            paths: {type: list}
-                        steps:
-
-                            - resolve-logger:
-                                action: logging
-                                output:
-                                  logstash-host: logstash-host
-                                  cookbooks-version: cookbooks-version
-
-                            - deregister-path:
-                                action: execrun
-                                precedingPhases: [resolve-logger]
-                                parameters:
-                                  roles: '{$.roles}'
-                                  command:
-                                    - '~/.undeploy.me/nxlogmanage.sh deregister_path --apply-now "$$(basename $$(dirname $$OUTPUT_DIR))" "{$.logstash-host}"'
-                                  args: '{$.paths}'
-
-                    logging:
-                        parameters:
-                            logger-host: {type: string, default: "localhost"}
-                            logger-repo: {type: string, default: "http://qubell-logging.s3.amazonaws.com"}
-                            logger-version: {type: string, default: "stable"}
-                        steps:
-
-                            - get-properties:
-                                action: getEnvironmentProperties
-                                output:
-                                  props: result
-
-                            - compute-properties:
-                                action: serialize
-                                precedingPhases: [get-properties]
-                                parameters:
-                                  format: JSON
-                                  input: [
-                                    '{$.props}',
-                                    {"logger-host": '{$.logger-host}'},
-                                    {"logger-repo": '{$.logger-repo}'}
-                                  ]
-                                output:
-                                  property-or-policy: serialized
-
-                            - choose-logger:
-                                action: serialize
-                                precedingPhases: [compute-properties]
-                                parameters:
-                                  format: JSON
-                                  input: '{$.property-or-policy..logger-host}'
-                                output:
-                                  logger-hosts: serialized
-
-                            - choose-repo:
-                                action: serialize
-                                precedingPhases: [compute-properties]
-                                parameters:
-                                  format: JSON
-                                  input: '{$.property-or-policy..logger-repo}'
-                                output:
-                                  logger-repos: serialized
-
-                        return:
-                            logstash-host:
-                              value: '{$.logger-hosts[0]}'
-                            nxlog-repo:
-                              value: '{$.logger-repos[0]}'
-                            cookbooks-version:
-                              value: '{$.logger-version}'
-
-
-
-    bindings:
-        - [workflow, wfService]
-        - [workflow, secureStore]
