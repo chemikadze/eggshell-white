@@ -1,3 +1,5 @@
+BUCKET=qubell-logging
+
 usage() {
   cat <<EOF
 Usage:
@@ -5,6 +7,7 @@ Usage:
 
   Flags:
     -f, --force       do not ask before upload
+    --travis          use travis-artifacts instead of s3cmd
     --nxlog-scripts   upload nxlog tarballs
     --nxlog-tarballs  upload nxlog tarballs
     --widgets         upload widget assets
@@ -38,6 +41,9 @@ while [ ! -z $1 ]; do
     --cookbooks)
       WITH_COOKBOOKS=1
       ;;
+    --travis)
+      USE_TRAVIS=1
+      ;;
     -*)
       usage
       exit 1
@@ -48,6 +54,22 @@ while [ ! -z $1 ]; do
   esac
   shift
 done
+
+if [ ! -z $USE_TRAVIS ]; then
+  upload() {
+    (
+      cd $(dirname $1)
+      STRIPPED_PATH=$(basename $1)
+      TARGET_PATH=$VERSION/$(dirname $2 | sed -e 's/^\.$//')
+      # travis-artifacts uploads artifact with name $TARGET_PATH/$STRIPPED_PATH
+      travis-artifacts upload --path $STRIPPED_PATH --target-path $TARGET_PATH
+    )
+  }
+else
+  upload() {
+    s3cmd put -P $1 s3://qubell-logging/$VERSION/$2
+  }
+fi
 
 if [ -z $VERSION ]; then
   usage
@@ -63,28 +85,28 @@ if [ -z $FORCE ]; then
 fi
 
 if [ ! -z $WITH_COOKBOOKS ]; then
-  s3cmd put -P -m application/x-gzip target/nxlog.tar.gz             s3://qubell-logging/$VERSION/nxlog.tar.gz
-  s3cmd put -P -m application/x-gzip target/logstash.tar.gz          s3://qubell-logging/$VERSION/logstash.tar.gz
+  upload target/nxlog.tar.gz    nxlog.tar.gz
+  upload target/logstash.tar.gz logstash.tar.gz
 fi
 
 if [ ! -z $WITH_WIDGETS ]; then
-  s3cmd put -P -m application/javascript target/kibana-all.js        s3://qubell-logging/$VERSION/kibana-all.js
+  upload target/kibana-all.js kibana-all.js
 fi
 
 if [ ! -z $WITH_MANIFESTS ]; then
-  s3cmd put -P -m application/x-yaml manifests/logstash.yaml         s3://qubell-logging/$VERSION/logstash.yaml
-  s3cmd put -P -m application/x-yaml manifests/nxlog-example.yaml    s3://qubell-logging/$VERSION/nxlog-example.yaml
-  s3cmd put -P -m application/x-yaml manifests/nxlog-example.yaml    s3://qubell-logging/$VERSION/nxlog-example.v1.yaml
-  s3cmd put -P -m application/x-yaml manifests/nxlog-example.v2.yaml s3://qubell-logging/$VERSION/nxlog-example.v2.yaml
+  upload manifests/logstash.yaml logstash.yaml
+  upload manifests/nxlog-example.yaml    nxlog-example.yaml
+  upload manifests/nxlog-example.yaml    nxlog-example.v1.yaml
+  upload manifests/nxlog-example.v2.yaml nxlog-example.v2.yaml
 fi
 
 if [ ! -z $WITH_NXLOG_SCRIPTS ]; then
-  s3cmd put -P nxlog/setup-nxlog.sh s3://qubell-logging/$VERSION/setup-nxlog.sh
+  upload nxlog/setup-nxlog.sh setup-nxlog.sh
 fi
 
 if [ ! -z $WITH_NXLOG_TARBALLS ]; then
   for i in target/nxlog-static*.tar.gz; do
-    s3cmd put -P -m application/x-gzip $i s3://qubell-logging/$VERSION/${i#target/}
+    upload $i ${i#target/}
   done
 fi
 

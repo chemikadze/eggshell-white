@@ -8,7 +8,7 @@ HEADNAME=$(git rev-parse --abbrev-ref HEAD)
 
 if [[ ${TRAVIS_PULL_REQUEST} == "false" ]]; then
 
-    make && ./upload-assets.sh -f --nxlog-scripts --widgets --manifests --cookbooks $GIT_REVISION
+    make && ./upload-assets.sh -f --travis --nxlog-scripts --widgets --manifests --cookbooks $GIT_REVISION
 
     (
         export LOGGER_VERSION=$GIT_REVISION
