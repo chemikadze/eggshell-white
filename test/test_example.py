@@ -1,6 +1,6 @@
 import os
 
-from test_runner import BaseComponentTestCase
+from test_runner import BaseComponentTestCase, parameters as env_parameters
 from qubell.api.private.testing import environment
 
 
@@ -13,7 +13,7 @@ class ComponentTestCase(BaseComponentTestCase):
         "name": name,
         "file": os.path.realpath(os.path.join(os.path.dirname(__file__), '../%s.yml' % name)),
         "parameters": {
-            "configuration.logging-cookbooks-version": "latest"
+            "configuration.logging-cookbooks-version": env_parameters['logger_version']
         }
     }]
 

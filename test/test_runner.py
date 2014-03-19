@@ -29,7 +29,8 @@ parameters = {
     'provider_type': os.environ['PROVIDER_TYPE'],
     'provider_identity': os.environ['PROVIDER_IDENTITY'],
     'provider_credential': os.environ['PROVIDER_CREDENTIAL'],
-    'provider_region': os.environ['PROVIDER_REGION']
+    'provider_region': os.environ['PROVIDER_REGION'],
+    'logger_version': os.environ['LOGGER_VERSION']
 }
 
 context = Context(user=parameters['user'], password=parameters['pass'], api=parameters['tenant'])

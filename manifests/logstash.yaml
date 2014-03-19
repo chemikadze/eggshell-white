@@ -47,6 +47,7 @@ application:
                                 parameters:
                                   vm-user: "{$.vm-user}"
                                   vm-group: "{$.vm-group}"
+                                  logging-cookbooks-version: "{$.logging-cookbooks-version}"
 
                         return:
                             logstash-host:
@@ -61,7 +62,7 @@ application:
                         parameters:
                             logging-cookbooks-version:
                                 type: string
-                                default: latest
+                                default: stable
                             vm-user:
                                 type: string
                                 default: ec2-user
