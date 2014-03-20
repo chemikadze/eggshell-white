@@ -1,5 +1,5 @@
 simplejson
 pyaml
 requests
-qubell-api-python-client
+qubell-api-python-client>=1.23.24.1
 elasticsearch
