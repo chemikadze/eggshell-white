@@ -95,6 +95,20 @@ template "#{node['elasticsearch']['path']['config']}/elasticsearch.yml" do
   source "elasticsearch.yml.erb"
 end
 
+# yes, this is unsafe :(
+if platform_family?('rhel')
+  execute "stop iptables" do
+    command "if [ -e '/sbin/iptables' ]; then bash -c '/etc/init.d/iptables stop'; else echo $?; fi"
+  end
+end
+
+# yes, this is unsafe :(
+if platform_family?('debian')
+  execute "stop iptables" do
+    command "if [ -e '/sbin/iptables' ]; then bash -c '/sbin/iptables -F'; else echo $?; fi"
+  end
+end
+
 service_factory "logstash" do
   service_desc "Lostash and Elasticsearch"
   exec "/usr/bin/java"
