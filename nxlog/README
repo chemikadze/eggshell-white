@@ -5,7 +5,16 @@ Building NXLOG statically
 2. run ./build-static.sh
 3. binary and modules will be packed to ./nxlog-static.tar
 
-Following packages required to build on CentOS:
+Prerequisites on ubuntu:
+
+  apt-get update
+  apt-get install gcc wget make automake patch
+
+Prerequisites on centos:
+
+  yum install wget gcc make automake patch
+
+Following packages are required to build on CentOS:
 
   apr-devel pcre-devel openssl-devel expat-devel
 
