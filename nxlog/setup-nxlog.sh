@@ -37,8 +37,14 @@ function install_nxlog
   mkdir -p $NXLOG_ROOT/cache
   mkdir -p $NXLOG_ROOT/var
   NXLOG_TARBALL_URL=$NXLOG_REPO/$NXLOG_RELEASE/nxlog-static-$(detect_system).tar.gz
-  echo "Downloading pre-built nxlog $NXLOG_TARBALL_URL"
-  curl -Lkso $TMPDIR/nxlog.tar.gz $NXLOG_TARBALL_URL
+  NXLOG_FALLBACK_TARBALL=$NXLOG_REPO/nxlog-static-$(detect_system).tar.gz
+  (
+    echo "Downloading pre-built nxlog $NXLOG_TARBALL_URL"
+    curl -fLkso $TMPDIR/nxlog.tar.gz $NXLOG_TARBALL_URL
+  ) || (
+    echo "NXLog tarball of version $NXLOG_RELEASE not found, trying unversioned tarball $NXLOG_FALLBACK_TARBALL"
+    curl -fLkso $TMPDIR/nxlog.tar.gz $NXLOG_FALLBACK_TARBALL
+  )
   tar xzvpf $TMPDIR/nxlog.tar.gz -C $NXLOG_ROOT --strip-components=1
 }
 
