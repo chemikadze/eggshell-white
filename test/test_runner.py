@@ -51,6 +51,11 @@ class BaseComponentTestCase(BaseTestCase):
 
         return base_env
 
+    @classmethod
+    def manifest(cls, name):
+        return os.path.realpath(
+            os.path.join(os.path.dirname(__file__), '../manifests/%s.yaml' % name))
+
 if __name__ == '__main__':
     logger = logging.getLogger()
     logger.setLevel(logging.INFO)
