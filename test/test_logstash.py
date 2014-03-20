@@ -10,10 +10,10 @@ from qubell.api.private.testing import environment, instance, values
     "default": {}
 })
 class ComponentTestCase(BaseComponentTestCase):
-    name = "eggshell-white"
+    name = "logstash"
     apps = [{
         "name": name,
-        "file": os.path.realpath(os.path.join(os.path.dirname(__file__), '../%s.yml' % name)),
+        "file": os.path.realpath(os.path.join(os.path.dirname(__file__), '../manifests/%s.yaml' % name)),
         "parameters": {
             "configuration.logging-cookbooks-version": env_parameters['logger_version']
         }
