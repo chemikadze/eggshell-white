@@ -28,9 +28,18 @@ filter {
   grok {
       type => "nxlog"
 
-      # v1 cobalt-52aab45be4b0ef4e9b9e0a9b.applications.52d4de58e4b08ec56d58a714.workflow/jobid.stepid.stepname/filename.txt
-      # v2 52d4de58e4b08ec56d58a714/jobid.stepid.stepname/filename.txt
-      match => [ "FileName", "(cobalt-%{BASE16NUM:appId}\.applications\.%{BASE16NUM:instId}\.?%{DATA:componentId}|%{BASE16NUM:instId})/(%{DATA:jobId}\.%{DATA:stepId}\.%{DATA:stepname}|%{DATA})/%{GREEDYDATA:filename}" ]
+      # v1   cobalt-52aab45be4b0ef4e9b9e0a9b.applications.52d4de58e4b08ec56d58a714.workflow/jobid.stepid.stepname/filename.txt
+      # v2   52d4de58e4b08ec56d58a714/jobid.stepid.stepname/filename.txt
+      # init 52d4de58e4b08ec56d58a714/chef-init/filename.txt
+      match => [ "FileName", "(cobalt-%{BASE16NUM:appId}\.applications\.%{BASE16NUM:instId}\.?%{DATA:componentId}|%{BASE16NUM:instId})/(%{DATA:jobId}\.%{DATA:stepId}\.%{DATA:stepname}|%{DATA:chefInit})/%{GREEDYDATA:filename}" ]
+  }
+
+  grok {
+    type => "nxlog"
+    match => [ "chefInit", ".+" ]
+    add_field => [ "jobId", "~%{chefInit}~"]
+    add_field => [ "stepId", "~%{chefInit}~" ]
+    add_field => [ "stepname", "~%{chefInit}~" ]
   }
 
   mutate {
