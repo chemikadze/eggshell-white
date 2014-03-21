@@ -3,7 +3,7 @@ default['kibana']['serve_ssl'] = false
 default['kibana']['install_root']             = '/var/lib/kibana'
 default['kibana']['ssl_certificate']          = '/var/lib/logstash/server.pem' # TODO
 default['kibana']['ssl_certificate_key']      = '/var/lib/logstash/server.key' # TODO
-default['kibana']['version']                  = '9d6573e3d8130d722f71835957fcdf602ca1e18f'
+default['kibana']['version']                  = '3.0.0'
 
 default['logstash']['version']                = '1.3.3'
 default['logstash']['install_root']           = '/var/lib/logstash'
