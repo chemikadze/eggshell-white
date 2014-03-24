@@ -100,11 +100,12 @@ app.propertyWidgets.KibanaLogs = (function() {
       var ejsClient = getClient(elasticsearchUrl(returnValue.value));
       var dashboard = dashboardForInstance(instance)
 
+      ejsClient.client.option("async", false);
       elasticsearchSaveDashboard(ejsClient, dashboard,
         function() {
           var url = parseUrl(returnValue.value);
           url.hash = "#/dashboard/elasticsearch/" + dashboard.title;
-          window.location = url
+          window.open(url, "_blank");
         },
         function() {
           alert("Can not connect to logging dashboard.")
@@ -143,11 +144,12 @@ app.propertyWidgets.KibanaLogs = (function() {
 
       var dashboard = withFilters(dashboardForInstance(instance),
         filterVms(choosenVms).concat(filterSteps(choosenSteps)).concat(filterJobs(choosenJobs)));
+      ejsClient.client.option("async", false);
       elasticsearchSaveDashboard(ejsClient, dashboard,
         function() {
           var url = parseUrl(returnValue.value);
           url.hash = "#/dashboard/elasticsearch/" + dashboard.title;
-          window.location = url
+          window.open(url, "_blank");
         },
         function() {
           var msg =
