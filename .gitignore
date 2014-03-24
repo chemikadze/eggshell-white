@@ -1,4 +1,7 @@
 *.swp
+*.pyc
+*.sublime-workspace
+.vermilionrc
 .DS_Store
 .history
 
