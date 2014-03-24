@@ -1,0 +1,7 @@
+path:
+  logs: <%= node['elasticsearch']['path']['logs'] %>
+  data: <%= node['elasticsearch']['path']['data'] %>
+
+script.disable_dynamic: true
+rest.action.multi.allow_explicit_index: false
+

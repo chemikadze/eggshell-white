@@ -88,13 +88,19 @@ template "#{rootdir}/logstash.conf" do
   variables "inputs" => inputs
 end
 
-elasticsearch_settings = []
-node['elasticsearch']['path'].each_pair { |key, value| elasticsearch_settings << "-Des.path.#{key}=#{value}" }
+template "#{node['elasticsearch']['path']['config']}/elasticsearch.yml" do
+  owner node.logstash.user
+  group node.logstash.group
+  mode "0644"
+  source "elasticsearch.yml.erb"
+end
 
 service_factory "logstash" do
   service_desc "Lostash and Elasticsearch"
   exec "/usr/bin/java"
-  exec_args elasticsearch_settings + [
+  exec_args [
+    "-Des.path.home=#{node['elasticsearch']['path']['home']}",
+    "-Des.path.config=#{node['elasticsearch']['path']['config']}",
     "-jar #{rootdir}/logstash.jar",
     "agent",
     "-f #{rootdir}/logstash.conf",

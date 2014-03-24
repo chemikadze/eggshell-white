@@ -21,5 +21,6 @@ default['elasticsearch']['proxy_port']          = 9201
 default['elasticsearch']['ssl_certificate']     = '/var/lib/logstash/server.pem' # TODO
 default['elasticsearch']['ssl_certificate_key'] = '/var/lib/logstash/server.key' # TODO
 default['elasticsearch']['path']['home']        = '/var/lib/elasticsearch'
+default['elasticsearch']['path']['config']      = '/var/lib/elasticsearch/config'
 default['elasticsearch']['path']['data']        = '/var/lib/elasticsearch/data'
 default['elasticsearch']['path']['logs']        = '/var/log/elasticsearch'

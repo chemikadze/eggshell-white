@@ -39,9 +39,9 @@ app.propertyWidgets.KibanaLogs = (function() {
     var request = client.Request()
       .query(client.QueryStringQuery("instId:\"" + instanceId + "\""))
       .size(0)
-      .facet(client.TermsFacet("steps").script("_source[\"stepname\"]"))
-      .facet(client.TermsFacet("jobs").script("_source[\"jobId\"]"))
-      .facet(client.TermsFacet("vms").script("_source[\"host\"]"));
+      .facet(client.TermsFacet("steps").field("stepname.raw"))
+      .facet(client.TermsFacet("jobs").field("jobId.raw"))
+      .facet(client.TermsFacet("vms").field("host.raw"));
 
     request.doSearch(
       function(r) {
