@@ -66,7 +66,7 @@ filter {
     tags => [ "unprocessed" ]
     remove_tag => [ "unprocessed" ]
     match => [ "Stream", "stderr" ]
-    add_field => [ "Severity", "ERROR" ]
+    add_field => [ "Severity", "INFO" ]
     add_field => [ "MessageTxt", "%{Message}" ]
   }
 
