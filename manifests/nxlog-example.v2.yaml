@@ -7,6 +7,7 @@ application:
         actions:
             do-something: bind(workflow#actions.do-something)
             do-empty-chef-run: bind(workflow#actions.do-empty-chef-run)
+            change-logger: bind(workflow#actions.change-logger)
         result:
             vms:                       bind(workflow#result.vms)
             logging-dashboard: bind(workflow#result.logging-dashboard)
@@ -33,6 +34,7 @@ application:
                 actions:
                     do-something:      receive-command(string command => object stdout => object stderr)
                     do-empty-chef-run: receive-command(string logger-cookbooks-version => object chefState)
+                    change-logger:     receive-command()
                 logger:
                     logger-server: consume-signal(string)
                 result:
@@ -40,6 +42,8 @@ application:
                     logging-dashboard: publish-signal(string)
             required: [logger]
             configuration:
+                configuration.triggers:
+                    logger.logger-server: change-logger
                 configuration.workflows:
 
                     launch:
@@ -124,6 +128,18 @@ application:
                         return:
                             chefState:
                                 value: "{$.chefState}"
+
+                    change-logger:
+                        steps:
+                            - update:
+                                action: changeLoggerServer
+                                parameters:
+                                    roles: [ logger ]
+                                output: 
+                                    logging-dashboard: logging-dashboard
+                        return:
+                            logging-dashboard:
+                                value: '{$.logging-dashboard}'
 
 
                     destroy:

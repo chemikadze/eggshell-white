@@ -88,6 +88,17 @@ do-empty-chef-run:
         chefState:
             value: "{$.chefState}"
 
+change-logger:
+    steps:
+        - update:
+            action: changeLoggerServer
+            parameters:
+                roles: [ logger ]
+            output: 
+                logging-dashboard: logging-dashboard
+    return:
+        logging-dashboard:
+            value: '{$.logging-dashboard}'
 
 destroy:
     steps:
