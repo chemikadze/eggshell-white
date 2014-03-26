@@ -34,10 +34,18 @@ app.propertyWidgets.KibanaLogs = (function() {
       return request.doIndex(onSuccess, onFailure);
   };
 
-  function elasticsearchMetaForInstance(client, instanceId, onSuccess, onFailure) {
+  function hiddenJob(job) {
+    return job.id == "~chef-install~" || job.id == "~chef-init~";
+  }
+
+  function hiddenStep(stepName) {
+    return stepName == "~chef-install~" || stepName == "~chef-init~";
+  }
+
+  function elasticsearchMetaForInstance(client, instance, onSuccess, onFailure) {
     // TODO: this is heavy, should use simple facet without script
     var request = client.Request()
-      .query(client.QueryStringQuery("instId:\"" + instanceId + "\""))
+      .query(client.QueryStringQuery("instId:\"" + instance.id + "\""))
       .size(0)
       .facet(client.TermsFacet("steps").field("stepname.raw"))
       .facet(client.TermsFacet("jobs").field("jobId.raw"))
@@ -48,20 +56,72 @@ app.propertyWidgets.KibanaLogs = (function() {
         var steps = [];
         var stepTerms = r['facets']['steps']['terms'];
         for (var i = 0; i < stepTerms.length; ++i) {
-          steps.push(stepTerms[i]['term']);
+          var stepName = stepTerms[i]['term'];
+          if (hiddenStep(stepName)) {
+            continue;
+          }
+          steps.push(stepName);
         }
+        steps.sort();
 
         var vms = [];
         var vmsTerms = r['facets']['vms']['terms'];
         for (var i = 0; i < vmsTerms.length; ++i) {
           vms.push(vmsTerms[i]['term']);
         }
+        vms.sort();
 
-        var jobs = [];
-        var jobTerms = r['facets']['jobs']['terms'];
-        for (var i = 0; i < jobTerms.length; ++i) {
-          jobs.push(jobTerms[i]['term']);
+        var jobMapping = {};
+        var jobObjects = [];        
+        try {
+          // try all available sources: history, current and all
+          for (var i = 0; i < instance.workflowHistory.length; ++i) {
+            var item = instance.workflowHistory[i];
+            jobMapping[item.id] = item;
+          }
+          if (instance.currentWorkfow) {
+            jobMapping[instance.currentWorkfow.id] = instance.currentWorkfow;
+          }
+          for (var i = 0; i < instance.workflows.length; ++i) {
+            var item = instance.workflows[i];
+            if (!jobMapping[item.id]) {
+              jobMapping[item.id] = item;
+            }
+          }
+
+          var jobTerms = r['facets']['jobs']['terms'];
+          for (var i = 0; i < jobTerms.length; ++i) {
+            var jobId = jobTerms[i]['term'];
+            var jobObject = {"id": jobId};
+            if (jobMapping.hasOwnProperty(jobId)) {
+              jobObject = $.extend(true, jobObject, jobMapping[jobId]);
+            }
+            jobObjects.push(jobObject);
+          }
+          jobObjects.sort(function (a, b) {
+            return (a.startedAt || Number.MAX_VALUE) - (b.startedAt || Number.MAX_VALUE);
+          });
+        } catch (e) {
+          console.error("Can not retrieve job metadata for instance. Probably widget is out-of-date.");
         }
+
+        var jobs = [];        
+        for (var i = 0; i < jobObjects.length; ++i) {
+          var job = jobObjects[i];
+          if (hiddenJob(job)) {
+            continue;
+          }
+          var title = job.id;
+          try {
+            var date = new Date(job.startedAt);
+            if (job.name) {
+              title = job.name + " (" + date.toDateString() + " " + date.toLocaleTimeString() + ")";
+            }
+          } catch (e) {
+            console.error("Can not format job information. Probably widget is out-of-date.");
+          }
+          jobs.push(title);
+        }        
 
         onSuccess({'vms': vms, 'steps': steps, 'jobs': jobs});
       },
@@ -214,7 +274,7 @@ app.propertyWidgets.KibanaLogs = (function() {
       renderWaitingDropdown($dropdown);
 
       var ejsClient = getClient(elasticsearchUrl(returnValue.value));
-      elasticsearchMetaForInstance(ejsClient, instance.id,
+      elasticsearchMetaForInstance(ejsClient, instance,
         function(meta) {
           renderDropdown($dropdown, meta.steps, meta.vms, meta.jobs)
         },
