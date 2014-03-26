@@ -14,6 +14,7 @@ app.propertyWidgets.getWidgetName = function(instance, returnValue, userValue) {
 
 app.propertyWidgets.KibanaLogs = (function() {
 
+  var MAX_ITEMS = 1000;
   var config = {
     kibana_index: "kibana-int",
     elasticsearchPort: 9200
@@ -47,9 +48,9 @@ app.propertyWidgets.KibanaLogs = (function() {
     var request = client.Request()
       .query(client.QueryStringQuery("instId:\"" + instance.id + "\""))
       .size(0)
-      .facet(client.TermsFacet("steps").field("stepname.raw"))
-      .facet(client.TermsFacet("jobs").field("jobId.raw"))
-      .facet(client.TermsFacet("vms").field("host.raw"));
+      .facet(client.TermsFacet("steps").field("stepname.raw").size(MAX_ITEMS))
+      .facet(client.TermsFacet("jobs").field("jobId.raw").size(MAX_ITEMS))
+      .facet(client.TermsFacet("vms").field("host.raw").size(MAX_ITEMS));
 
     request.doSearch(
       function(r) {
