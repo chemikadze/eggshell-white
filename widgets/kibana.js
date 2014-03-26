@@ -245,7 +245,7 @@ app.propertyWidgets.KibanaLogs = (function() {
 
     function renderDropdown($ul, steps, vms, jobs) {
       clearDropdown($ul);
-      $ul.attr("style", "padding: 10px");
+      $ul.attr("style", "padding: 10px; max-height: 350px;");
       // $el = $("<li/>"); // breaks render in Chrome
       // $ul.append($el);
       $el = $ul;
