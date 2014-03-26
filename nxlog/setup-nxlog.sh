@@ -106,6 +106,33 @@ function deregister_path # (group[, logger_host, [path...]])
   eval "$POSTSCRIPT"
 }
 
+function migrate # (target_group, new_logger[, old_logger])
+{
+  if [ "x$1" == "x--apply-now" ]; then
+    POSTSCRIPT="apply_registry_changes; start_service"
+    shift
+  else
+    POSTSCRIPT=true
+  fi
+  TARGET_GROUP=$1
+  NEW_LOGGER_HOST=$2
+  OLD_LOGGER_HOST=$3  
+  shift; shift; shift
+
+  /bin/cp -f $NXLOG_REGISTRY $NXLOG_REGISTRY~
+  cat $NXLOG_REGISTRY~ | while read TARGET_TYPE GROUP LOGGER_HOST TARGET_PATH; do
+    if [ "x$GROUP" == "x$TARGET_GROUP" ] && (
+         [ "x$OLD_LOGGER_HOST" == "x$LOGGER_HOST" ] || 
+         [ "x$OLD_LOGGER_HOST" == "x" ] || 
+         [ "x$OLD_LOGGER_HOST" == "x--" ]); then
+      echo $TARGET_TYPE $GROUP $NEW_LOGGER_HOST $TARGET_PATH
+    else
+      echo $TARGET_TYPE $GROUP $LOGGER_HOST $TARGET_PATH
+    fi
+  done > $NXLOG_REGISTRY
+  eval "$POSTSCRIPT"
+}
+
 function show_registry
 {
   cat $NXLOG_REGISTRY
@@ -288,15 +315,15 @@ function help # ()
     $0 register_qubell_path [--apply-now] GROUP LOGGER_HOST PATH
     $0 register_user_path [--apply-now] GROUP LOGGER_HOST PATH [PATH ...]
     $0 deregister_path [--apply-now] GROUP [LOGGER_HOST PATH [PATH ...]]
+    $0 migrate [--apply-now] GROUP NEW_LOGGER_HOST [OLD_LOGGER_HOST]
         View and edit list of logged entities.
 
         GROUP is any string without spaces, which can be used to identify
               related sets of paths. Inside one group, combinations
               LOGGER_HOST - PATH are unique, duplicates will be ignored.
 
-
     $0 apply_registry_changes
-        Generates nxlog configuration from registry.
+        Generates nxlog configuration from registry.    
 
 EOF
 }
