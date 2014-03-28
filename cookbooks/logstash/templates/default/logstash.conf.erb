@@ -61,6 +61,18 @@ filter {
       match => [ "Message", "[/\w_%!$@:.,-]+:%{NUMBER}: %{DATA:Severity}: %{GREEDYDATA:MessageTxt}" ]
   }
 
+  # haproxy
+  grok {
+      type => "nxlog"
+      tags => [ "unprocessed" ]
+      remove_tag => [ "unprocessed" ]
+      match => [ "Message", "%{HAPROXYHTTP}" ]
+      add_field => [ "Severity", "INFO" ]
+      add_field => [ "MessageTxt", "%{Message}" ]
+      add_field => [ "filename", "%{FileName}" ]
+      remove_field => [ "Stream" ]
+  }
+
   grok { # other messages from stderr
     type => "nxlog"
     tags => [ "unprocessed" ]
