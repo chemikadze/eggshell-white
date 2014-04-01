@@ -8,6 +8,8 @@ application:
         logger:
             logger-server:     bind(logstash#result.logstash-host)
             kibana-dashboard:  bind(logstash#result.kibana-dashboard)
+        management:
+            update: bind(logstash#actions.update)
 
     configuration:
         configuration.logging-cookbooks-version: "stable"
@@ -23,6 +25,8 @@ application:
                     logging-cookbooks-version: configuration(string)
                     vm-user: configuration(string)
                     vm-group: configuration(string)
+                actions:
+                    update: receive-command()
                 result:
                     logstash-host:    publish-signal(string)
                     kibana-dashboard: publish-signal(string)
