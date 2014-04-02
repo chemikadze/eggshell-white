@@ -95,11 +95,22 @@ filter {
       add_field => [ "Severity", "INFO" ]      
   }
 
+  # mysqld.log
+  grok {
+      type => "nxlog"
+      tags => [ "unprocessed" ]
+      remove_tag => [ "unprocessed" ]
+      add_tag => [ "customdatetime" ]
+      match => [ "Message", "(?<EventReceivedTime>\d{2}%{MONTHNUM}%{MONTHDAY} %{TIME}) %{GREEDYDATA:MessageTxt}" ]
+      add_field => [ "filename", "%{FileName}" ]
+      add_field => [ "Severity", "INFO" ]      
+  }
+
   date {
     type => "nxlog"
     tags => [ "customdatetime" ]
     remove_tag => [ "customdatetime" ]
-    match => [ "EventReceivedTime", "MMM dd, YYYY hh:mm:ss aa" ]
+    match => [ "EventReceivedTime", "MMM dd, YYYY hh:mm:ss aa", "yyMMdd HH:mm:ss" ]
     locale => "US"
     timezone => "UTC"
   }
