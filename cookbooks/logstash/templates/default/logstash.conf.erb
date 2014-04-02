@@ -23,6 +23,7 @@ input {
 filter {
   date {
       match => [ "EventReceivedTime", "YYYY-MM-dd HH:mm:ss" ]
+      remove_field => [ "Stream", "EventReceivedTime" ]
   }
 
   grok {
@@ -71,6 +72,36 @@ filter {
       add_field => [ "MessageTxt", "%{Message}" ]
       add_field => [ "filename", "%{FileName}" ]
       remove_field => [ "Stream" ]
+  }
+
+  # tomcat 1
+  grok {
+      type => "nxlog"
+      tags => [ "unprocessed" ]
+      remove_tag => [ "unprocessed" ]
+      match => [ "Message", "%{LOGLEVEL:Severity}: %{GREEDYDATA:MessageTxt}" ]
+      add_field => [ "filename", "%{FileName}" ]
+      remove_field => [ "Stream" ]
+  }
+  
+  # tomcat 2
+  grok {
+      type => "nxlog"
+      tags => [ "unprocessed" ]
+      remove_tag => [ "unprocessed" ]
+      add_tag => [ "customdatetime" ]
+      match => [ "Message", "(?<EventReceivedTime>%{MONTH} %{MONTHDAY}, %{YEAR} %{TIME} (AM|PM)) %{GREEDYDATA:MessageTxt}" ]
+      add_field => [ "filename", "%{FileName}" ]
+      add_field => [ "Severity", "INFO" ]      
+  }
+
+  date {
+    type => "nxlog"
+    tags => [ "customdatetime" ]
+    remove_tag => [ "customdatetime" ]
+    match => [ "EventReceivedTime", "MMM dd, YYYY hh:mm:ss aa" ]
+    locale => "US"
+    timezone => "UTC"
   }
 
   grok { # other messages from stderr
