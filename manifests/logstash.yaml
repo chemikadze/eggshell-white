@@ -67,17 +67,11 @@ application:
                                 value: "http://{$.consumerips[0]}/ganglia/"
 
 
-                    .install-logger: &INSTALL
+                    .install-logger:
                         parameters:
-                            logging-cookbooks-version:
-                                type: string
-                                default: stable
-                            vm-user:
-                                type: string
-                                default: ec2-user
-                            vm-group:
-                                type: string
-                                default: ec2-user
+                            logging-cookbooks-version: {type: string}
+                            vm-user: {type: string}
+                            vm-group: {type: string}
                         steps:
                             - install-logger:
                                 action: chefrun
@@ -91,7 +85,15 @@ application:
                                             user: "{$.vm-user}"
                                             group: "{$.vm-group}"
 
-                    update: *INSTALL
+                    update: 
+                        steps:
+                            - update-consumer:
+                                action: .install-logger
+                                precedingPhases: [ init-consumer ]
+                                parameters:
+                                  vm-user: "{$.vm-user}"
+                                  vm-group: "{$.vm-group}"
+                                  logging-cookbooks-version: "{$.logging-cookbooks-version}"
 
                     destroy:
                         steps:
