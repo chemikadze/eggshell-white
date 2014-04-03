@@ -1,5 +1,10 @@
 default['kibana']['serve_ssl'] = false
 
+default['ganglia']['root'] = '/var/lib/ganglia'
+default['ganglia']['version'] = "3.1.7"
+default['ganglia']['uri'] = "http://sourceforge.net/projects/ganglia/files/ganglia%20monitoring%20core/3.1.7/ganglia-3.1.7.tar.gz/download"
+default['ganglia']['checksum'] = "bb1a4953"
+
 default['kibana']['install_root']             = '/var/lib/kibana'
 default['kibana']['ssl_certificate']          = '/var/lib/logstash/server.pem' # TODO
 default['kibana']['ssl_certificate_key']      = '/var/lib/logstash/server.key' # TODO
@@ -24,3 +29,4 @@ default['elasticsearch']['path']['home']        = '/var/lib/elasticsearch'
 default['elasticsearch']['path']['config']      = '/var/lib/elasticsearch/config'
 default['elasticsearch']['path']['data']        = '/var/lib/elasticsearch/data'
 default['elasticsearch']['path']['logs']        = '/var/log/elasticsearch'
+default['elasticsearch']['file_limits']         = 10000

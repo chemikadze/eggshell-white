@@ -88,6 +88,13 @@ template "#{rootdir}/logstash.conf" do
   variables "inputs" => inputs
 end
 
+template "/etc/security/limits.d/80-elasticsearch.conf" do
+  owner "root"
+  group "root"
+  mode "0644"
+  source "80-elasticsearch.conf.erb"
+end
+
 template "#{node['elasticsearch']['path']['config']}/elasticsearch.yml" do
   owner node.logstash.user
   group node.logstash.group
@@ -109,10 +116,13 @@ if platform_family?('debian')
   end
 end
 
+mem_kb = node['memory']['total'].split('kB')[0].to_i * 2 / 3
+
 service_factory "logstash" do
   service_desc "Lostash and Elasticsearch"
   exec "/usr/bin/java"
   exec_args [
+    "-Xmx#{mem_kb}k",
     "-Des.path.home=#{node['elasticsearch']['path']['home']}",
     "-Des.path.config=#{node['elasticsearch']['path']['config']}",
     "-jar #{rootdir}/logstash.jar",

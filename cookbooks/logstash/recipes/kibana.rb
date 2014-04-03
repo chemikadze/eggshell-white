@@ -46,6 +46,9 @@ template File.join(node['nginx']['dir'], "sites-available", "kibana") do
   mode "0644"
   source "kibana.site.erb"
   action :create
+  variables({
+    :serve_ganglia => node.run_list.include?("recipe[logstash::monitor]")
+    })
 end
 
 file File.join(node['nginx']['dir'], "conf.d", "default.conf") do

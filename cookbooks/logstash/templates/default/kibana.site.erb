@@ -1,14 +1,16 @@
-# static kibana pages through SSL with HTTP->HTTPS redirect
+<% if @serve_ganglia -%>  
+upstream php-fpm {
+  server unix:/var/run/php-fpm/php-fpm.sock;
+}
+<% end -%>
 
 <% if node['kibana']['serve_ssl'] -%>
-
 server {
   listen 80;
   server_name _;
 
   rewrite ^(.*)$ https://$host$1 permanent;
 }
-
 <% end -%>
 
 
@@ -38,6 +40,16 @@ server {
         alias   <%= node['kibana']['install_root'] %>/;
         index  index.html index.htm;
     }
+
+    <% if @serve_ganglia -%>  
+    location /ganglia/ {
+        root <%= "#{node['ganglia']['root']}/www" %>;
+        index index.php;
+        try_files $uri $uri/index.php =404;
+        fastcgi_pass php-fpm;
+        include fastcgi.conf;
+    }
+    <% end -%>
 
     error_page  404              /404.html;
     location = /404.html {
