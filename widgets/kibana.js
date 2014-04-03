@@ -54,6 +54,10 @@ app.propertyWidgets.KibanaLogs = (function() {
 
     request.doSearch(
       function(r) {
+        if (!r['facets']) {
+          onSuccess({'vms': [], 'steps': [], 'jobs': []});
+        }
+
         var steps = [];
         var stepTerms = r['facets']['steps']['terms'];
         for (var i = 0; i < stepTerms.length; ++i) {
