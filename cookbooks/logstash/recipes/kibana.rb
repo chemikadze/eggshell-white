@@ -47,7 +47,8 @@ template File.join(node['nginx']['dir'], "sites-available", "kibana") do
   source "kibana.site.erb"
   action :create
   variables({
-    :serve_ganglia => node.run_list.include?("recipe[logstash::monitor]")
+    :serve_ganglia => (not node['logstash']['skip_monitor']),
+    :fastcgiconf => (if node[:platform] == "ubuntu" or node[:platform] == "debian" then "fastcgi_params" else "fastcgi.conf" end)
     })
 end
 

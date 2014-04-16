@@ -4,6 +4,11 @@ default['ganglia']['root'] = '/var/lib/ganglia'
 default['ganglia']['version'] = "3.1.7"
 default['ganglia']['uri'] = "http://sourceforge.net/projects/ganglia/files/ganglia%20monitoring%20core/3.1.7/ganglia-3.1.7.tar.gz/download"
 default['ganglia']['checksum'] = "bb1a4953"
+if (node[:platform] == "ubuntu" and node[:platform_version].to_f <= 10.04) or not node.run_list.include?("recipe[logstash::monitor]")
+  default['logstash']['skip_monitor'] = true
+else
+  default['logstash']['skip_monitor'] = false
+end
 
 default['kibana']['install_root']             = '/var/lib/kibana'
 default['kibana']['ssl_certificate']          = '/var/lib/logstash/server.pem' # TODO

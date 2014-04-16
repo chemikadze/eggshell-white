@@ -1,17 +1,23 @@
 package "rrdtool"
 
+return if node['logstash']['skip_monitor']
+
 case node[:platform]
-when "ubuntu", "debian"
+when "ubuntu", "debian"  
   package "ganglia-monitor"
   package "gmetad"
   package "php5-fpm"
   service_name = "ganglia-monitor"
+  fpm_conf = "/etc/php5/fpm/pool.d/www.conf"
+  fpm_service_name = "php5-fpm"
 when "redhat", "centos", "fedora"
   include_recipe "yum::epel"
   package "ganglia-gmond"
   package "ganglia-gmetad"  
   package "php-fpm"  
   service_name = "gmond"
+  fpm_conf = "/etc/php-fpm.d/www.conf"
+  fpm_service_name = "php-fpm"
 end
 
 service "gmetad" do
@@ -25,12 +31,11 @@ service service_name do
   action [ :enable, :start ]
 end
 
-fpm_conf = "/etc/php-fpm.d/www.conf"
 execute "configure php-fpm" do
   command "cp #{fpm_conf} #{fpm_conf}.tmp && sed -e 's|^listen =.*$|listen = /var/run/php-fpm/php-fpm.sock|' < #{fpm_conf}.tmp > #{fpm_conf}"
 end
 
-service "php-fpm" do
+service fpm_service_name do
   action :restart
 end
 

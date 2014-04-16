@@ -47,7 +47,7 @@ server {
         index index.php;
         try_files $uri $uri/index.php =404;
         fastcgi_pass php-fpm;
-        include fastcgi.conf;
+        include <%= @fastcgiconf %>;
     }
     <% end -%>
 
