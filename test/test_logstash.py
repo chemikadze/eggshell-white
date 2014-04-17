@@ -12,12 +12,12 @@ def make_env(image, identity, group=None):
         {"action": "provisionVms", "parameter": "vmIdentity", "value": identity},
         {"action": ".install-logger", "parameter": "vm-user", "value": identity},
         {"action": ".install-logger", "parameter": "vm-group", "value": group or identity},
-        {"action": "logging", "parameter": "version", "value": env_parameters['logger_version']}]
+        {"action": "loggingSettings", "parameter": "version", "value": env_parameters['logger_version']}]
     }
 
 @environment({
     "default": {"policies": [
-        {"action": "logging", "parameter": "version", "value": env_parameters['logger_version']}]
+        {"action": "loggingSettings", "parameter": "version", "value": env_parameters['logger_version']}]
     },
     # https://www.ruby-forum.com/topic/519162
     # "AmazonEC2_CentOS_53_i686":     make_env("us-east-1/ami-beda31d7", "root"),
