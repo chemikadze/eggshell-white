@@ -32,12 +32,16 @@ function detect_system # ()
 
 function install_nxlog
 {
+  SYSTEM=$(detect_system)
+  if [ $? != 0 ]; then
+    exit 1
+  fi
   mkdir -p $NXLOG_ROOT
   mkdir -p $NXLOG_ROOT/spool
   mkdir -p $NXLOG_ROOT/cache
   mkdir -p $NXLOG_ROOT/var
-  NXLOG_TARBALL_URL=$NXLOG_REPO/$NXLOG_RELEASE/nxlog-static-$(detect_system).tar.gz
-  NXLOG_FALLBACK_TARBALL=$NXLOG_REPO/nxlog-static-$(detect_system).tar.gz
+  NXLOG_TARBALL_URL=$NXLOG_REPO/$NXLOG_RELEASE/nxlog-static-$SYSTEM.tar.gz
+  NXLOG_FALLBACK_TARBALL=$NXLOG_REPO/nxlog-static-$SYSTEM.tar.gz
   (
     echo "Downloading pre-built nxlog $NXLOG_TARBALL_URL"
     curl -fLkso $TMPDIR/nxlog.tar.gz $NXLOG_TARBALL_URL
@@ -45,6 +49,10 @@ function install_nxlog
     echo "NXLog tarball of version $NXLOG_RELEASE not found, trying unversioned tarball $NXLOG_FALLBACK_TARBALL"
     curl -fLkso $TMPDIR/nxlog.tar.gz $NXLOG_FALLBACK_TARBALL
   )
+  if [ $? != 0 ]; then
+    echo "Failed to download NXLog tarball $SYSTEM"
+    exit 1
+  fi
   tar xzvpf $TMPDIR/nxlog.tar.gz -C $NXLOG_ROOT --strip-components=1
 }
 
