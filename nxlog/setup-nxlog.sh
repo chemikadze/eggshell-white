@@ -130,14 +130,14 @@ function migrate # (target_group, new_logger[, old_logger])
   fi
   TARGET_GROUP=$1
   NEW_LOGGER_HOST=$2
-  OLD_LOGGER_HOST=$3  
+  OLD_LOGGER_HOST=$3
   shift; shift; shift
 
   /bin/cp -f $NXLOG_REGISTRY $NXLOG_REGISTRY~
   cat $NXLOG_REGISTRY~ | while read TARGET_TYPE GROUP LOGGER_HOST TARGET_PATH; do
     if [ "x$GROUP" == "x$TARGET_GROUP" ] && (
-         [ "x$OLD_LOGGER_HOST" == "x$LOGGER_HOST" ] || 
-         [ "x$OLD_LOGGER_HOST" == "x" ] || 
+         [ "x$OLD_LOGGER_HOST" == "x$LOGGER_HOST" ] ||
+         [ "x$OLD_LOGGER_HOST" == "x" ] ||
          [ "x$OLD_LOGGER_HOST" == "x--" ]); then
       echo $TARGET_TYPE $GROUP $NEW_LOGGER_HOST $TARGET_PATH
     else
@@ -337,7 +337,7 @@ function help # ()
               LOGGER_HOST - PATH are unique, duplicates will be ignored.
 
     $0 apply_registry_changes
-        Generates nxlog configuration from registry.    
+        Generates nxlog configuration from registry.
 
 EOF
 }
