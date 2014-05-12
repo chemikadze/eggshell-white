@@ -292,7 +292,7 @@ function start_service # ()
 
 function install # (consumer, monitor_dir, group)
 {
-  if [ -d $NXLOG_ROOT ]; then
+  if [ -e $NXLOG_ROOT/nxlog ]; then
     echo "NXLog already installed in $NXLOG_ROOT"
   else
     install_nxlog
