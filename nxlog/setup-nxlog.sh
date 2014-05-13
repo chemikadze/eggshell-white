@@ -32,12 +32,16 @@ function detect_system # ()
 
 function install_nxlog
 {
+  SYSTEM=$(detect_system)
+  if [ $? != 0 ]; then
+    exit 1
+  fi
   mkdir -p $NXLOG_ROOT
   mkdir -p $NXLOG_ROOT/spool
   mkdir -p $NXLOG_ROOT/cache
   mkdir -p $NXLOG_ROOT/var
-  NXLOG_TARBALL_URL=$NXLOG_REPO/$NXLOG_RELEASE/nxlog-static-$(detect_system).tar.gz
-  NXLOG_FALLBACK_TARBALL=$NXLOG_REPO/nxlog-static-$(detect_system).tar.gz
+  NXLOG_TARBALL_URL=$NXLOG_REPO/$NXLOG_RELEASE/nxlog-static-$SYSTEM.tar.gz
+  NXLOG_FALLBACK_TARBALL=$NXLOG_REPO/nxlog-static-$SYSTEM.tar.gz
   (
     echo "Downloading pre-built nxlog $NXLOG_TARBALL_URL"
     curl -fLkso $TMPDIR/nxlog.tar.gz $NXLOG_TARBALL_URL
@@ -45,6 +49,10 @@ function install_nxlog
     echo "NXLog tarball of version $NXLOG_RELEASE not found, trying unversioned tarball $NXLOG_FALLBACK_TARBALL"
     curl -fLkso $TMPDIR/nxlog.tar.gz $NXLOG_FALLBACK_TARBALL
   )
+  if [ $? != 0 ]; then
+    echo "Failed to download NXLog tarball $SYSTEM"
+    exit 1
+  fi
   tar xzvpf $TMPDIR/nxlog.tar.gz -C $NXLOG_ROOT --strip-components=1
 }
 
@@ -122,14 +130,14 @@ function migrate # (target_group, new_logger[, old_logger])
   fi
   TARGET_GROUP=$1
   NEW_LOGGER_HOST=$2
-  OLD_LOGGER_HOST=$3  
+  OLD_LOGGER_HOST=$3
   shift; shift; shift
 
   /bin/cp -f $NXLOG_REGISTRY $NXLOG_REGISTRY~
   cat $NXLOG_REGISTRY~ | while read TARGET_TYPE GROUP LOGGER_HOST TARGET_PATH; do
     if [ "x$GROUP" == "x$TARGET_GROUP" ] && (
-         [ "x$OLD_LOGGER_HOST" == "x$LOGGER_HOST" ] || 
-         [ "x$OLD_LOGGER_HOST" == "x" ] || 
+         [ "x$OLD_LOGGER_HOST" == "x$LOGGER_HOST" ] ||
+         [ "x$OLD_LOGGER_HOST" == "x" ] ||
          [ "x$OLD_LOGGER_HOST" == "x--" ]); then
       echo $TARGET_TYPE $GROUP $NEW_LOGGER_HOST $TARGET_PATH
     else
@@ -292,7 +300,7 @@ function start_service # ()
 
 function install # (consumer, monitor_dir, group)
 {
-  if [ -d $NXLOG_ROOT ]; then
+  if [ -e $NXLOG_ROOT/nxlog ]; then
     echo "NXLog already installed in $NXLOG_ROOT"
   else
     install_nxlog
@@ -329,7 +337,7 @@ function help # ()
               LOGGER_HOST - PATH are unique, duplicates will be ignored.
 
     $0 apply_registry_changes
-        Generates nxlog configuration from registry.    
+        Generates nxlog configuration from registry.
 
 EOF
 }
