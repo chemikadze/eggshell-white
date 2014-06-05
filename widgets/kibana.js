@@ -77,7 +77,7 @@ app.propertyWidgets.KibanaLogs = (function() {
         vms.sort();
 
         var jobMapping = {};
-        var jobObjects = [];        
+        var jobObjects = [];
         try {
           // try all available sources: history, current and all
           for (var i = 0; i < instance.workflowHistory.length; ++i) {
@@ -110,7 +110,7 @@ app.propertyWidgets.KibanaLogs = (function() {
           console.error("Can not retrieve job metadata for instance. Probably widget is out-of-date.");
         }
 
-        var jobs = [];        
+        var jobs = [];
         for (var i = 0; i < jobObjects.length; ++i) {
           var job = jobObjects[i];
           if (hiddenJob(job)) {
@@ -126,7 +126,7 @@ app.propertyWidgets.KibanaLogs = (function() {
             console.error("Can not format job information. Probably widget is out-of-date.");
           }
           jobs.push(title);
-        }        
+        }
 
         onSuccess({'vms': vms, 'steps': steps, 'jobs': jobs});
       },
@@ -345,8 +345,8 @@ app.propertyWidgets.KibanaLogs = (function() {
           "failover": false,
           "index": {
               "default": "NO_TIME_FILTER_OR_INDEX_PATTERN_NOT_MATCHED",
-              "interval": "hour",
-              "pattern": "[logstash-]YYYY.MM.DD.HH",
+              "interval": "day",
+              "pattern": "[logstash-]YYYY.MM.DD",
               "warm_fields": true
           },
           "loader": {

@@ -83,7 +83,7 @@ filter {
       add_field => [ "filename", "%{FileName}" ]
       remove_field => [ "Stream" ]
   }
-  
+
   # tomcat 2
   grok {
       type => "nxlog"
@@ -92,7 +92,7 @@ filter {
       add_tag => [ "customdatetime" ]
       match => [ "Message", "(?<EventReceivedTime>%{MONTH} %{MONTHDAY}, %{YEAR} %{TIME} (AM|PM)) %{GREEDYDATA:MessageTxt}" ]
       add_field => [ "filename", "%{FileName}" ]
-      add_field => [ "Severity", "INFO" ]      
+      add_field => [ "Severity", "INFO" ]
   }
 
   # mysqld.log
@@ -103,7 +103,7 @@ filter {
       add_tag => [ "customdatetime" ]
       match => [ "Message", "(?<EventReceivedTime>\d{2}%{MONTHNUM}%{MONTHDAY} %{TIME}) %{GREEDYDATA:MessageTxt}" ]
       add_field => [ "filename", "%{FileName}" ]
-      add_field => [ "Severity", "INFO" ]      
+      add_field => [ "Severity", "INFO" ]
   }
 
   date {
@@ -164,7 +164,7 @@ filter {
 output {
   stdout { debug => true }
   elasticsearch {
-      index => "logstash-%{+YYYY.MM.dd.HH}"
+      index => "logstash-%{+YYYY.MM.dd}"
       embedded => true
   }
 }

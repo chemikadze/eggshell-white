@@ -98,7 +98,7 @@ class ComponentTestCase(BaseComponentTestCase):
             host = loggers[0].returnValues["logger.logger-server"]
             es = Elasticsearch([{'host': host}])
             records = es.count(
-                "logstash-" + datetime.utcnow().strftime('%Y.%m.%d.%H'),
+                "logstash-" + datetime.utcnow().strftime('%Y.%m.%d'),
                 body={"query": {"term": {"instId": instance.id}}})
             self.assertTrue(records >= 2, "Expected at least two messages in index, got %s" % records)
         except TransportError as e:
