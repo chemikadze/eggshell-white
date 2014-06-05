@@ -27,7 +27,8 @@ def make_env(image, identity, group=None):
     "AmazonEC2_Ubuntu_1004_i686":   make_env("us-east-1/ami-fb3c0392", "ubuntu"),
     "AmazonEC2_Ubuntu_1004_x86_64": make_env("us-east-1/ami-9f3906f6", "ubuntu"),
     "AmazonEC2_Ubuntu_1204_i686":   make_env("us-east-1/ami-a18c8fc8", "ubuntu"),
-    "AmazonEC2_Ubuntu_1204_x86_64": make_env("us-east-1/ami-6f969506", "ubuntu")
+    "AmazonEC2_Ubuntu_1204_x86_64": make_env("us-east-1/ami-6f969506", "ubuntu"),
+    "AmazonEC2_Ubuntu_1404_x86_64": make_env("us-east-1/ami-7fe7fe16", "ubuntu")
 })
 class ComponentTestCase(BaseComponentTestCase):
     manifest = BaseComponentTestCase.manifest

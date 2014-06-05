@@ -3,7 +3,7 @@ package "rrdtool"
 return if node['logstash']['skip_monitor']
 
 case node[:platform]
-when "ubuntu", "debian"  
+when "ubuntu", "debian"
   package "ganglia-monitor"
   package "gmetad"
   package "php5-fpm"
@@ -13,8 +13,8 @@ when "ubuntu", "debian"
 when "redhat", "centos", "fedora"
   include_recipe "yum::epel"
   package "ganglia-gmond"
-  package "ganglia-gmetad"  
-  package "php-fpm"  
+  package "ganglia-gmetad"
+  package "php-fpm"
   service_name = "gmond"
   fpm_conf = "/etc/php-fpm.d/www.conf"
   fpm_service_name = "php-fpm"
@@ -36,6 +36,11 @@ execute "configure php-fpm" do
 end
 
 service fpm_service_name do
+  # 14.04 init.d don't work, so force upstart provider
+  if node[:platform] == "ubuntu" and node[:platform_version].to_f >= 14.04
+    provider Chef::Provider::Service::Upstart
+  end
+  supports :restart => true
   action :restart
 end
 
@@ -49,8 +54,8 @@ directory node['ganglia']['root'] + "/www"
 
 bash "install ganglia-web" do
   code <<-EOF
-  tar xzf /usr/src/ganglia-#{node['ganglia']['version']}.tar.gz -C #{node['ganglia']['root']}/www --strip-components=1 ganglia-#{node['ganglia']['version']}/web 
-  mv #{node['ganglia']['root']}/www/web #{node['ganglia']['root']}/www/ganglia 
+  tar xzf /usr/src/ganglia-#{node['ganglia']['version']}.tar.gz -C #{node['ganglia']['root']}/www --strip-components=1 ganglia-#{node['ganglia']['version']}/web
+  mv #{node['ganglia']['root']}/www/web #{node['ganglia']['root']}/www/ganglia
   sed -e 's|@varstatedir@|/var/lib/|' < #{node['ganglia']['root']}/www/ganglia/conf.php.in > #{node['ganglia']['root']}/www/ganglia/conf.php
   chown apache:apache -R #{node['ganglia']['root']}/www
   chmod 0555 -R #{node['ganglia']['root']}/www
@@ -59,4 +64,4 @@ bash "install ganglia-web" do
   creates node['ganglia']['root'] + "/www/ganglia"
 end
 
- 
+
