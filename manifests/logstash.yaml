@@ -8,7 +8,6 @@ application:
         logger:
             logger-server:     bind(logstash#result.logstash-host)
             kibana-dashboard:  bind(logstash#result.kibana-dashboard)
-            monitoring-dashboard:  bind(logstash#result.ganglia-dashboard)
         management:
             update: bind(logstash#actions.update)
 
@@ -31,7 +30,6 @@ application:
                 result:
                     logstash-host:    publish-signal(string)
                     kibana-dashboard: publish-signal(string)
-                    ganglia-dashboard: publish-signal(string)
             configuration:
                 configuration.workflows:
                     launch:
@@ -62,9 +60,6 @@ application:
                             kibana-dashboard:
                                 description: Kibana UI
                                 value: "http://{$.consumerips[0]}/kibana/"
-                            ganglia-dashboard:
-                                description: Ganglia UI
-                                value: "http://{$.consumerips[0]}/ganglia/"
 
 
                     .install-logger:
@@ -79,13 +74,13 @@ application:
                                     isSolo: true
                                     roles: [ consumer ]
                                     recipeUrl: "http://qubell-logging.s3.amazonaws.com/{$.logging-cookbooks-version}/logstash.tar.gz"
-                                    runList: [ "recipe[logstash::monitor]", "recipe[logstash::kibana]", "recipe[logstash]" ]
+                                    runList: [ "recipe[logstash::kibana]", "recipe[logstash]" ]
                                     jattrs:
                                         logstash:
                                             user: "{$.vm-user}"
                                             group: "{$.vm-group}"
 
-                    update: 
+                    update:
                         steps:
                             - update-consumer:
                                 action: .install-logger

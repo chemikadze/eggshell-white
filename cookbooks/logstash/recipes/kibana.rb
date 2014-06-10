@@ -64,3 +64,8 @@ end
 nginx_site "kibana" do
   timing :immediately
 end
+
+service 'nginx' do
+  supports :status => true, :restart => true, :reload => true
+  action   :start
+end
