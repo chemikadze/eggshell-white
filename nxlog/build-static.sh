@@ -38,6 +38,9 @@ function detect_system # ()
         echo $ID-$VERSION_ID-$ARCH | tr '[A-Z]' '[a-z]'
       fi
     )
+  elif [ -f /etc/system-release ] && grep -i amazon /etc/system-release 2>/dev/null 1>/dev/null; then
+    VER=$(cat /etc/system-release | sed -re 's/.*(20[0-9][0-9]\.[0-9][0-9]?).*/\1/')
+    echo amazon-$VER-$ARCH
   elif which lsb_release 2>/dev/null 1>/dev/null; then
     echo $(lsb_release -si)-$(lsb_release -sr)-$ARCH | tr '[A-Z]' '[a-z]'
   else
