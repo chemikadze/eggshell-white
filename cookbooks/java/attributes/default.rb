@@ -1,7 +1,7 @@
 #
 # Author:: Seth Chisamore (<schisamo@opscode.com>)
 # Cookbook Name:: java
-# Attributes:: default 
+# Attributes:: default
 #
 # Copyright 2010, Opscode, Inc.
 #
@@ -26,30 +26,52 @@ default['java']['jdk_version'] = '6'
 default['java']['arch'] = kernel['machine'] =~ /x86_64/ ? "x86_64" : "i586"
 
 case platform
-when "centos","redhat","fedora","scientific","amazon"
+when "centos","redhat","fedora","scientific","amazon","oracle"
   default['java']['java_home'] = "/usr/lib/jvm/java"
 when "freebsd"
   default['java']['java_home'] = "/usr/local/openjdk#{java['jdk_version']}"
 when "arch"
   default['java']['java_home'] = "/usr/lib/jvm/java-#{java['jdk_version']}-openjdk"
+when "windows"
+  default['java']['install_flavor'] = "windows"
+  default['java']['windows']['url'] = nil
+  default['java']['windows']['package_name'] = "Java(TM) SE Development Kit 7 (64-bit)"
 else
   default['java']['java_home'] = "/usr/lib/jvm/default-java"
 end
 
+# if you change this to true, you can download directly from Oracle
+default['java']['oracle']['accept_oracle_download_terms'] = false
+
+# direct download paths for oracle, you have been warned!
+
 # jdk6 attributes
+default['java']['jdk']['6']['bin_cmds'] = [ "appletviewer", "apt", "ControlPanel", "extcheck", "HtmlConverter", "idlj", "jar", "jarsigner", 
+                                            "java", "javac", "javadoc", "javah", "javap", "javaws", "jconsole", "jcontrol", "jdb", "jhat", 
+                                            "jinfo", "jmap", "jps", "jrunscript", "jsadebugd", "jstack", "jstat", "jstatd", "jvisualvm", 
+                                            "keytool", "native2ascii", "orbd", "pack200", "policytool", "rmic", "rmid", "rmiregistry", 
+                                            "schemagen", "serialver", "servertool", "tnameserv", "unpack200", "wsgen", "wsimport", "xjc" ]
+
 # x86_64
-default['java']['jdk']['6']['x86_64']['url'] = 'http://download.example.com/otn-pub/java/jdk/6u30-b12/jdk-6u30-linux-x64.bin'
-default['java']['jdk']['6']['x86_64']['checksum'] = '928220f4e46c5dabef0440791c48023945629d8a23998e072157e04960d8a759'
+default['java']['jdk']['6']['x86_64']['url'] = 'http://download.oracle.com/otn-pub/java/jdk/6u43-b01/jdk-6u43-linux-x64.bin'
+default['java']['jdk']['6']['x86_64']['checksum'] = '653c35ec6c64c3b127dea0afed1f16ba2b32efcaeae86fc02777b70e3e166aee'
 
 # i586
-default['java']['jdk']['6']['i586']['url'] = 'http://download.example.com/otn-pub/java/jdk/6u30-b12/jdk-6u30-linux-i586.bin'
-default['java']['jdk']['6']['i586']['checksum'] = 'b551be83a690bc9fec0107d9aa4f828cd47e150fa54cbedbfa8f80c99e2f18b5'
+default['java']['jdk']['6']['i586']['url'] = 'http://download.oracle.com/otn-pub/java/jdk/6u43-b01/jdk-6u43-linux-i586.bin'
+default['java']['jdk']['6']['i586']['checksum'] = '616df04eddac146b1c67de00ae07bb2d1179f470f35f9e661e1f5075423cf4e1'
 
 # jdk7 attributes
+
+default['java']['jdk']['7']['bin_cmds'] = [ "appletviewer", "apt", "ControlPanel", "extcheck", "idlj", "jar", "jarsigner", "java", "javac", 
+                                            "javadoc", "javafxpackager", "javah", "javap", "javaws", "jcmd", "jconsole", "jcontrol", "jdb", 
+                                            "jhat", "jinfo", "jmap", "jps", "jrunscript", "jsadebugd", "jstack", "jstat", "jstatd", "jvisualvm", 
+                                            "keytool", "native2ascii", "orbd", "pack200", "policytool", "rmic", "rmid", "rmiregistry", 
+                                            "schemagen", "serialver", "servertool", "tnameserv", "unpack200", "wsgen", "wsimport", "xjc" ]
+
 # x86_64
-default['java']['jdk']['7']['x86_64']['url'] = 'http://download.example.com/otn-pub/java/jdk/7u2-b13/jdk-7u2-linux-x64.tar.gz'
-default['java']['jdk']['7']['x86_64']['checksum'] = '411a204122c5e45876d6edae1a031b718c01e6175833740b406e8aafc37bc82d'
+default['java']['jdk']['7']['x86_64']['url'] = 'http://download.oracle.com/otn-pub/java/jdk/7u17-b02/jdk-7u17-linux-x64.tar.gz'
+default['java']['jdk']['7']['x86_64']['checksum'] = '8611ce31e0b7ecb99d34703ad89b29a545a3fb30356553be3674366cbe722782'
 
 # i586
-default['java']['jdk']['7']['i586']['url'] = 'http://download.example.com/otn-pub/java/jdk/7u2-b13/jdk-7u2-linux-i586.tar.gz'
-default['java']['jdk']['7']['i586']['checksum'] = '74faad48fef2c368276dbd1fd6c02520b0e9ebdcb1621916c1af345fc3ba65d1'
+default['java']['jdk']['7']['i586']['url'] = 'http://download.oracle.com/otn-pub/java/jdk/7u17-b02/jdk-7u17-linux-i586.tar.gz'
+default['java']['jdk']['7']['i586']['checksum'] = '4046e941e05717538dd4deb1b1f55cb8bb6bd38793c7317034d1f5019086d956'
