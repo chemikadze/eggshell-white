@@ -253,6 +253,7 @@ EOF
         ;;
 
         file)
+          INST_ID=$(echo $GROUP | sed -re 's/cobalt-[^.]+.[^.]+.([^.]+).*/\1/')
           cat <<EOF
 <Input job_file_$TARGET_ID>
     Module im_file
@@ -261,7 +262,7 @@ EOF
     Recursive TRUE
     Exec \$Message = \$raw_event;
     Exec \$FileName = file_name();
-    Exec \$instId = "$GROUP";
+    Exec \$instId = "$INST_ID";
     Exec to_json();
 </Input>
 
