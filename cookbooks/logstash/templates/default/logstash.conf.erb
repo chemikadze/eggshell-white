@@ -36,6 +36,19 @@ filter {
   }
 
   grok {
+      type => "nxlog"
+      match => [ "instId", "cobalt-%{BASE16NUM:appId}\.applications\.%{BASE16NUM:realInstId}\.?%{DATA:componentId}" ]
+      add_tag => [ "parsedinstid" ]
+  }
+
+  mutate {
+      tags => ["parsedinstid"]
+      replace => [ "instId", "%{realInstId}" ]
+      remove_tag => ["parsedinstid"]
+      remove_field => ["realInstId"]
+  }
+
+  grok {
     type => "nxlog"
     match => [ "chefInit", ".+" ]
     add_field => [ "jobId", "~%{chefInit}~"]
@@ -158,6 +171,7 @@ filter {
   mutate {
       type => "nxlog"
       remove => [ "Message", "MessageTxt", "Severity", "SourceModuleType", "SourceModuleName", "EventReceivedTime", "FileName", "@source_path", "@source", "parsed_host" ]
+      remove_tag => ["_grokparsefailure"]
   }
 
 }
