@@ -298,13 +298,32 @@ EOF
   ) > $NXLOG_ROOT/nxlog.conf
 }
 
+function check_running
+{
+  [ -f $NXLOG_ROOT/var/nxlog.pid ] && ps $(cat $NXLOG_ROOT/var/nxlog.pid) 2>&1 1>/dev/null
+}
+
 function start_service # ()
 {
-  if [ -f $NXLOG_ROOT/var/nxlog.pid ] && ps $(cat $NXLOG_ROOT/var/nxlog.pid) 2>&1 1>/dev/null; then
-    echo "NXLog already running with PID $(cat $NXLOG_ROOT/var/nxlog.pid). Reloading configuration."
-    $NXLOG_ROOT/nxlog -r -c $NXLOG_ROOT/nxlog.conf
+  RELOAD_COMMAND="$NXLOG_ROOT/nxlog -r -c $NXLOG_ROOT/nxlog.conf"
+  START_COMMAND="$NXLOG_ROOT/nxlog -c $NXLOG_ROOT/nxlog.conf"
+  # check we can run with sudo, bypassing requiretty on some systems
+  CAN_SUDO=$(script -qc "if sudo -n $NXLOG_ROOT/nxlog -v -c $NXLOG_ROOT/nxlog.conf 1>/dev/null 2>/dev/null ; then echo -n TRUE; else echo -n FALSE; fi 2>/dev/null" /dev/null)
+  if [ $? != 0 ] || [ "x$CAN_SUDO" != xTRUE ]; then
+    if check_running; then
+      echo "NXLog already running with PID $(cat $NXLOG_ROOT/var/nxlog.pid). Reloading configuration."
+      $RELOAD_COMMAND
+    else
+      $START_COMMAND
+    fi
   else
-    $NXLOG_ROOT/nxlog -c $NXLOG_ROOT/nxlog.conf
+    # TODO propagate failure from "script"
+    if check_running; then
+      echo "NXLog already running with PID $(cat $NXLOG_ROOT/var/nxlog.pid). Reloading configuration."
+      script -qc "sudo -n setsid $RELOAD_COMMAND" /dev/null
+    else
+      script -qc "sudo -n setsid $START_COMMAND" /dev/null
+    fi
   fi
 }
 
