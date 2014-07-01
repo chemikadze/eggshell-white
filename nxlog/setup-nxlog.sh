@@ -203,6 +203,7 @@ EOF
     Exec \$Message = \$raw_event;
     Exec \$FileName = substr(file_name(), ${TARGET_PREFIX_LEN});
     Exec \$Stream = "stdout";
+    Exec \$EventReceivedTimeMs = string(\$EventReceivedTime) + "." + string(microsecond(\$EventReceivedTime));
     Exec to_json();
 </Input>
 
@@ -214,6 +215,7 @@ EOF
     Exec \$Message = \$raw_event;
     Exec \$FileName = substr(file_name(), ${TARGET_PREFIX_LEN});
     Exec \$Stream = "stderr";
+    Exec \$EventReceivedTimeMs = string(\$EventReceivedTime) + "." + string(microsecond(\$EventReceivedTime));
     Exec to_json();
 </Input>
 
@@ -263,6 +265,7 @@ EOF
     Exec \$Message = \$raw_event;
     Exec \$FileName = file_name();
     Exec \$instId = "$INST_ID";
+    Exec \$EventReceivedTimeMs = string(\$EventReceivedTime) + "." + string(microsecond(\$EventReceivedTime));
     Exec to_json();
 </Input>
 

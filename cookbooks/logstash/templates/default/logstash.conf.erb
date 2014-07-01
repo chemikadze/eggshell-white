@@ -26,6 +26,11 @@ filter {
       remove_field => [ "Stream", "EventReceivedTime" ]
   }
 
+  date {
+      match => [ "EventReceivedTimeMs", "YYYY-MM-dd HH:mm:ss", "YYYY-MM-dd HH:mm:ss.S", "YYYY-MM-dd HH:mm:ss.SS", "YYYY-MM-dd HH:mm:ss.SSS", "YYYY-MM-dd HH:mm:ss.SSSS", "YYYY-MM-dd HH:mm:ss.SSSSS", "YYYY-MM-dd HH:mm:ss.SSSSSS" ]
+      remove_field => [ "Stream", "EventReceivedTimeMs" ]
+  }
+
   grok {
       type => "nxlog"
 
@@ -170,7 +175,7 @@ filter {
 
   mutate {
       type => "nxlog"
-      remove => [ "Message", "MessageTxt", "Severity", "SourceModuleType", "SourceModuleName", "EventReceivedTime", "FileName", "@source_path", "@source", "parsed_host" ]
+      remove => [ "Message", "MessageTxt", "Severity", "SourceModuleType", "SourceModuleName", "EventReceivedTime", "EventReceivedTimeMs", "FileName", "@source_path", "@source", "parsed_host" ]
       remove_tag => ["_grokparsefailure"]
   }
 
