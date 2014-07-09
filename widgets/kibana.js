@@ -22,9 +22,8 @@ app.propertyWidgets.KibanaLogs = (function() {
 
   function elasticsearchSaveDashboard(client, dashboard, onSuccess, onFailure) {
       var save = jQuery.extend(true, {}, dashboard);
-      var id = save.title;
 
-      var request = client.Document(config.kibana_index, 'dashboard', id).source({
+      var request = client.Document(config.kibana_index, 'dashboard', save.id).opType('create').source({
         user: 'guest',
         group: 'guest',
         title: save.title,
@@ -32,7 +31,14 @@ app.propertyWidgets.KibanaLogs = (function() {
       });
 
       console.debug("Saving dashboard '" + dashboard.title + "'")
-      return request.doIndex(onSuccess, onFailure);
+      return request.doIndex(onSuccess, function (req, status, cause) {
+        if (status == "error" && cause == "Conflict") {
+          console.debug("Ignoring duplicated dashboard");
+          onSuccess(req, status, cause);
+        } else {
+          onFailure(req, status, cause);
+        }
+      });
   };
 
   function hiddenJob(job) {
@@ -169,7 +175,7 @@ app.propertyWidgets.KibanaLogs = (function() {
       elasticsearchSaveDashboard(ejsClient, dashboard,
         function() {
           var url = parseUrl(returnValue.value);
-          url.hash = "#/dashboard/elasticsearch/" + dashboard.title;
+          url.hash = "#/dashboard/elasticsearch/" + dashboard.id;
           window.open(url, "_blank");
         },
         function() {
@@ -209,11 +215,19 @@ app.propertyWidgets.KibanaLogs = (function() {
 
       var dashboard = withFilters(dashboardForInstance(instance),
         filterVms(choosenVms).concat(filterSteps(choosenSteps)).concat(filterJobs(choosenJobs)));
+
+      var segments = [{name: "steps", items: choosenSteps}, {name: "vms", items: choosenVms}, {name: "jobs", items: choosenJobs}];
+      for (var i = 0; i < segments.length; ++i) {
+        if (segments[i].items.length > 0) {
+          dashboard.id = dashboard.id + "-" + segments[i].name + "-" + segments[i].items.slice().sort().join();
+        }
+      }
+
       ejsClient.client.option("async", false);
       elasticsearchSaveDashboard(ejsClient, dashboard,
         function() {
           var url = parseUrl(returnValue.value);
-          url.hash = "#/dashboard/elasticsearch/" + dashboard.title;
+          url.hash = "#/dashboard/elasticsearch/" + dashboard.id;
           window.open(url, "_blank");
         },
         function() {
@@ -340,6 +354,7 @@ app.propertyWidgets.KibanaLogs = (function() {
 
   function dashboardForInstance(instance) {
     return {
+          "id": "inst-" + instance.id,
           "title": "Logs for '" + instance.name + "'",
           "editable": true,
           "failover": false,
