@@ -5,6 +5,7 @@ NXLOG_CONSUMER=${NXLOG_CONSUMER:-localhost}
 NXLOG_RELEASE=${NXLOG_RELEASE:-stable}
 NXLOG_REPO=${NXLOG_REPO:-http://qubell-logging.s3.amazonaws.com}
 NXLOG_REGISTRY=${NXLOG_ROOT}/registry.txt
+NXLOG_BUFFER_SIZE=${NXLOG_BUFFER_SIZE:-32768}
 
 set -E
 
@@ -223,8 +224,7 @@ EOF
 
 <Processor stderr_buffer_$TARGET_ID>
     Module      pm_buffer
-    # 8Mb buffer
-    MaxSize 8192
+    MaxSize     $NXLOG_BUFFER_SIZE
     Type Mem
     # warn at 7M
     WarnLimit 7000
@@ -232,8 +232,7 @@ EOF
 
 <Processor stdout_buffer_$TARGET_ID>
     Module      pm_buffer
-    # 8Mb buffer
-    MaxSize 8192
+    MaxSize     $NXLOG_BUFFER_SIZE
     Type Mem
     # warn at 7M
     WarnLimit 7000
@@ -274,8 +273,7 @@ EOF
 
 <Processor file_buffer_$TARGET_ID>
     Module      pm_buffer
-    # 8Mb buffer
-    MaxSize 8192
+    MaxSize     $NXLOG_BUFFER_SIZE
     Type Mem
     # warn at 7M
     WarnLimit 7000
