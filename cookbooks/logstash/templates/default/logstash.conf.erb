@@ -23,12 +23,12 @@ input {
 filter {
   date {
       match => [ "EventReceivedTime", "YYYY-MM-dd HH:mm:ss" ]
-      remove_field => [ "Stream", "EventReceivedTime" ]
+      remove_field => [ "EventReceivedTime" ]
   }
 
   date {
       match => [ "EventReceivedTimeMs", "YYYY-MM-dd HH:mm:ss", "YYYY-MM-dd HH:mm:ss.S", "YYYY-MM-dd HH:mm:ss.SS", "YYYY-MM-dd HH:mm:ss.SSS", "YYYY-MM-dd HH:mm:ss.SSSS", "YYYY-MM-dd HH:mm:ss.SSSSS", "YYYY-MM-dd HH:mm:ss.SSSSSS" ]
-      remove_field => [ "Stream", "EventReceivedTimeMs" ]
+      remove_field => [ "EventReceivedTimeMs" ]
   }
 
   grok {
