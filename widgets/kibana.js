@@ -71,14 +71,15 @@ app.propertyWidgets.KibanaLogs = (function() {
           if (hiddenStep(stepName)) {
             continue;
           }
-          steps.push(stepName);
+          steps.push({'id': stepName, 'name': stepName});
         }
         steps.sort();
 
         var vms = [];
         var vmsTerms = r['facets']['vms']['terms'];
         for (var i = 0; i < vmsTerms.length; ++i) {
-          vms.push(vmsTerms[i]['term']);
+          var vmName = vmsTerms[i]['term'];
+          vms.push({'id': vmName, 'name': vmName});
         }
         vms.sort();
 
@@ -131,7 +132,7 @@ app.propertyWidgets.KibanaLogs = (function() {
           } catch (e) {
             console.error("Can not format job information. Probably widget is out-of-date.");
           }
-          jobs.push(title);
+          jobs.push({'id': job.id, 'name': title});
         }
 
         onSuccess({'vms': vms, 'steps': steps, 'jobs': jobs});
@@ -270,7 +271,7 @@ app.propertyWidgets.KibanaLogs = (function() {
 
       function addItems(attr, items) {
         for (var i = 0; i < items.length; ++i) {
-          $item = $('<label class="checkbox"/>').append($('<input/>').attr('type', 'checkbox').attr(attr, items[i])).append(items[i]);
+          $item = $('<label class="checkbox"/>').append($('<input/>').attr('type', 'checkbox').attr(attr, items[i].id)).append(items[i].name);
           $el.append($item);
         }
       }
