@@ -71,13 +71,13 @@ filter {
                       # [2013-12-11T18:21:19+00:00] INFO: Setting the run_list to ["recipe[chef-solo-extension]", "recipe[nxlog]"] from JSON
       tags => [ "unprocessed" ]
       remove_tag => [ "unprocessed" ]
-      match => [ "Message", "\[[^\]]+\] %{LOGLEVEL:Severity}: %{GREEDYDATA:MessageTxt}" ]
+      match => [ "message", "\[[^\]]+\] %{LOGLEVEL:Severity}: %{GREEDYDATA:MessageTxt}" ]
   }
   grok { # chef client warnings
       type => "nxlog"
       tags => [ "unprocessed" ]
       remove_tag => [ "unprocessed" ]
-      match => [ "Message", "[/\w_%!$@:.,-]+:%{NUMBER}: %{DATA:Severity}: %{GREEDYDATA:MessageTxt}" ]
+      match => [ "message", "[/\w_%!$@:.,-]+:%{NUMBER}: %{DATA:Severity}: %{GREEDYDATA:MessageTxt}" ]
   }
 
   # haproxy
@@ -85,9 +85,9 @@ filter {
       type => "nxlog"
       tags => [ "unprocessed" ]
       remove_tag => [ "unprocessed" ]
-      match => [ "Message", "%{HAPROXYHTTP}" ]
+      match => [ "message", "%{HAPROXYHTTP}" ]
       add_field => [ "Severity", "INFO" ]
-      add_field => [ "MessageTxt", "%{Message}" ]
+      add_field => [ "MessageTxt", "%{message}" ]
       add_field => [ "filename", "%{FileName}" ]
       remove_field => [ "Stream" ]
   }
@@ -97,7 +97,7 @@ filter {
       type => "nxlog"
       tags => [ "unprocessed" ]
       remove_tag => [ "unprocessed" ]
-      match => [ "Message", "%{LOGLEVEL:Severity}: %{GREEDYDATA:MessageTxt}" ]
+      match => [ "message", "%{LOGLEVEL:Severity}: %{GREEDYDATA:MessageTxt}" ]
       add_field => [ "filename", "%{FileName}" ]
       remove_field => [ "Stream" ]
   }
@@ -108,7 +108,7 @@ filter {
       tags => [ "unprocessed" ]
       remove_tag => [ "unprocessed" ]
       add_tag => [ "customdatetime" ]
-      match => [ "Message", "(?<EventReceivedTime>%{MONTH} %{MONTHDAY}, %{YEAR} %{TIME} (AM|PM)) %{GREEDYDATA:MessageTxt}" ]
+      match => [ "message", "(?<EventReceivedTime>%{MONTH} %{MONTHDAY}, %{YEAR} %{TIME} (AM|PM)) %{GREEDYDATA:MessageTxt}" ]
       add_field => [ "filename", "%{FileName}" ]
       add_field => [ "Severity", "INFO" ]
   }
@@ -119,7 +119,7 @@ filter {
       tags => [ "unprocessed" ]
       remove_tag => [ "unprocessed" ]
       add_tag => [ "customdatetime" ]
-      match => [ "Message", "(?<EventReceivedTime>\d{2}%{MONTHNUM}%{MONTHDAY} %{TIME}) %{GREEDYDATA:MessageTxt}" ]
+      match => [ "message", "(?<EventReceivedTime>\d{2}%{MONTHNUM}%{MONTHDAY} %{TIME}) %{GREEDYDATA:MessageTxt}" ]
       add_field => [ "filename", "%{FileName}" ]
       add_field => [ "Severity", "INFO" ]
   }
@@ -139,7 +139,7 @@ filter {
     remove_tag => [ "unprocessed" ]
     match => [ "Stream", "stderr" ]
     add_field => [ "Severity", "INFO" ]
-    add_field => [ "MessageTxt", "%{Message}" ]
+    add_field => [ "MessageTxt", "%{message}" ]
   }
 
   grok { # other messages stdout
@@ -148,7 +148,7 @@ filter {
     remove_tag => [ "unprocessed" ]
     match => [ "Stream", "stdout" ]
     add_field => [ "Severity", "INFO" ]
-    add_field => [ "MessageTxt", "%{Message}" ]
+    add_field => [ "MessageTxt", "%{message}" ]
   }
 
   mutate { # messages from custom locations
@@ -157,7 +157,7 @@ filter {
     remove_tag => [ "unprocessed" ]
     add_field => [ "Severity", "INFO" ] # TODO: parse most common formats
     add_field => [ "filename", "%{FileName}" ]
-    add_field => [ "MessageTxt", "%{Message}" ]
+    add_field => [ "MessageTxt", "%{message}" ]
   }
 
   grok {
@@ -169,13 +169,13 @@ filter {
       type => "nxlog"
       replace => [ "@severity", "%{Severity}" ]
       replace => [ "@message", "%{MessageTxt}" ]
-      replace => [ "@raw", "%{Message}" ]
+      replace => [ "@raw", "%{message}" ]
       replace => [ "host", "%{parsed_host}" ]
   }
 
   mutate {
       type => "nxlog"
-      remove => [ "Message", "MessageTxt", "Severity", "SourceModuleType", "SourceModuleName", "EventReceivedTime", "EventReceivedTimeMs", "FileName", "@source_path", "@source", "parsed_host" ]
+      remove => [ "message", "Message", "MessageTxt", "Severity", "SourceModuleType", "SourceModuleName", "EventReceivedTime", "EventReceivedTimeMs", "FileName", "@source_path", "@source", "parsed_host" ]
       remove_tag => ["_grokparsefailure"]
   }
 
