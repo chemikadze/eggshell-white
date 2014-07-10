@@ -1,0 +1,106 @@
+application:
+
+    interfaces:
+        configuration:
+            ip: bind(logstash#input.ip)
+            logging-cookbooks-version: bind(logstash#input.logging-cookbooks-version)
+            vm-user:  bind(logstash#input.vm-user)
+            vm-group: bind(logstash#input.vm-group)
+        logger:
+            logger-server:     bind(logstash#result.logstash-host)
+            kibana-dashboard:  bind(logstash#result.kibana-dashboard)
+        management:
+            update: bind(logstash#actions.update)
+
+    configuration:
+        configuration.ip: ""
+        configuration.logging-cookbooks-version: "stable"
+        configuration.vm-user:  "ec2-user"
+        configuration.vm-group: "ec2-user"
+
+    components:
+
+        logstash:
+            type: workflow.Instance
+            interfaces:
+                input:
+                    ip: configuration(string)
+                    logging-cookbooks-version: configuration(string)
+                    vm-user: configuration(string)
+                    vm-group: configuration(string)
+                actions:
+                    update: receive-command()
+                result:
+                    logstash-host:    publish-signal(string)
+                    kibana-dashboard: publish-signal(string)
+            configuration:
+                configuration.workflows:
+                    launch:
+                        steps:
+
+                            - init-consumer:
+                                action: provisionVms
+                                parameters:
+                                  jcloudsProvider:   undefined
+                                  jcloudsEndpoint:   undefined
+                                  jcloudsIdentity:   undefined
+                                  jcloudsCredential: undefined
+                                  hardwareId: undefined
+                                  imageId: undefined
+
+                                  staticIps: ["{$.ip}"]
+                                  vmIdentity: "{$.vm-user}"
+                                output:
+                                  consumerips: ips
+
+                            - start-consumer:
+                                action: .install-logger
+                                precedingPhases: [ init-consumer ]
+                                parameters:
+                                  vm-user: "{$.vm-user}"
+                                  vm-group: "{$.vm-group}"
+                                  logging-cookbooks-version: "{$.logging-cookbooks-version}"
+
+                        return:
+                            logstash-host:
+                                description: Logstash host
+                                value: "{$.consumerips[0]}"
+                            kibana-dashboard:
+                                description: Kibana UI
+                                value: "http://{$.consumerips[0]}/kibana/"
+
+
+                    .install-logger:
+                        parameters:
+                            logging-cookbooks-version: {type: string}
+                            vm-user: {type: string}
+                            vm-group: {type: string}
+                        steps:
+                            - install-logger:
+                                action: chefrun
+                                parameters:
+                                    isSolo: true
+                                    roles: [ consumer ]
+                                    recipeUrl: "http://qubell-logging.s3.amazonaws.com/{$.logging-cookbooks-version}/logstash.tar.gz"
+                                    runList: [ "recipe[logstash::kibana]", "recipe[logstash]" ]
+                                    jattrs:
+                                        logstash:
+                                            user: "{$.vm-user}"
+                                            group: "{$.vm-group}"
+
+                    update:
+                        steps:
+                            - update-consumer:
+                                action: .install-logger
+                                precedingPhases: [ init-consumer ]
+                                parameters:
+                                  vm-user: "{$.vm-user}"
+                                  vm-group: "{$.vm-group}"
+                                  logging-cookbooks-version: "{$.logging-cookbooks-version}"
+
+                    destroy:
+                        steps:
+                            - destroy-vm:
+                                action: undeployEnv
+                                parameters:
+                                    phase: destroy

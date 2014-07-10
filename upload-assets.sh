@@ -95,6 +95,7 @@ fi
 
 if [ ! -z $WITH_MANIFESTS ]; then
   upload manifests/logstash.yaml logstash.yaml
+  upload manifests/logstash-static.yaml  logstash-static.yaml
   upload manifests/nxlog-example.yaml    nxlog-example.yaml
   upload manifests/nxlog-example.yaml    nxlog-example.v1.yaml
   upload manifests/nxlog-example.v2.yaml nxlog-example.v2.yaml
