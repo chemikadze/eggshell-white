@@ -99,10 +99,17 @@ class ComponentTestCase(BaseComponentTestCase):
             loggers = [inst for inst in instance.environment.services if instance.organization.application(inst.applicationId).name == self.name]
             host = loggers[0].returnValues["logger.logger-server"]
             es = Elasticsearch([{'host': host}])
-            records = es.count(
-                "logstash-" + datetime.utcnow().strftime('%Y.%m.%d'),
+            index_name = "logstash-" + datetime.utcnow().strftime('%Y.%m.%d')
+            records_count = es.count(
+                index_name,
                 body={"query": {"term": {"instId": instance.id}}})
-            self.assertTrue(records >= 2, "Expected at least two messages in index, got %s" % records)
+            self.assertTrue(records_count >= 2, "Expected at least two messages in index, got %s" % records_count)
+            records = es.search(index=index_name, body={"query": {"match_all": {}}})['hits']['hits']
+            for record in records:
+                self.assertEqual(record['_source']['@message'], 'Hello from execrun!')
+                expected_keys = ['@severity', '@timestamp', 'filename', 'instId', 'jobId', 'stepId', 'stepname', 'host', '@message']
+                for key in expected_keys:
+                    self.assertIn(key, record['_source'], "Message saved to elasticsearch should contain field %s" % key)
         except TransportError as e:
             self.fail("Can not retrieve count of log messages: %s %s" % (e.status_code, e.error))
 
