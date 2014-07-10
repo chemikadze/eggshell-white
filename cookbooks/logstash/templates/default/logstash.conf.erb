@@ -1,6 +1,6 @@
 input {
   tcp {
-    format => "json"
+    codec => "json"
     mode => "server"
     host => "0.0.0.0"
     port => 8514
@@ -21,6 +21,12 @@ input {
   <% end %>
 }
 filter {
+
+  # for backward compatibility
+  mutate {
+    rename => [ "Message", "message" ]
+  }
+
   date {
       match => [ "EventReceivedTime", "YYYY-MM-dd HH:mm:ss" ]
       remove_field => [ "EventReceivedTime" ]
@@ -32,8 +38,6 @@ filter {
   }
 
   grok {
-      type => "nxlog"
-
       # v1   cobalt-52aab45be4b0ef4e9b9e0a9b.applications.52d4de58e4b08ec56d58a714.workflow/jobid.stepid.stepname/filename.txt
       # v2   52d4de58e4b08ec56d58a714/jobid.stepid.stepname/filename.txt
       # init 52d4de58e4b08ec56d58a714/chef-init/filename.txt
@@ -41,20 +45,19 @@ filter {
   }
 
   grok {
-      type => "nxlog"
       match => [ "instId", "cobalt-%{BASE16NUM:appId}\.applications\.%{BASE16NUM:realInstId}\.?%{DATA:componentId}" ]
       add_tag => [ "parsedinstid" ]
   }
 
-  mutate {
-      tags => ["parsedinstid"]
+  if "parsedinstid" in [tags] {
+    mutate {
       replace => [ "instId", "%{realInstId}" ]
       remove_tag => ["parsedinstid"]
       remove_field => ["realInstId"]
+    }
   }
 
   grok {
-    type => "nxlog"
     match => [ "chefInit", ".+" ]
     add_field => [ "jobId", "~%{chefInit}~"]
     add_field => [ "stepId", "~%{chefInit}~" ]
@@ -62,111 +65,110 @@ filter {
   }
 
   mutate {
-    type => "nxlog"
     add_tag => "unprocessed"
   }
 
-  grok { # chef logs
-      type => "nxlog" # TIMESTAMP_ISO8601
-                      # [2013-12-11T18:21:19+00:00] INFO: Setting the run_list to ["recipe[chef-solo-extension]", "recipe[nxlog]"] from JSON
-      tags => [ "unprocessed" ]
-      remove_tag => [ "unprocessed" ]
-      match => [ "message", "\[[^\]]+\] %{LOGLEVEL:Severity}: %{GREEDYDATA:MessageTxt}" ]
+  if "unprocessed" in [tags] {
+    grok { # chef logs
+        # TIMESTAMP_ISO8601
+        # [2013-12-11T18:21:19+00:00] INFO: Setting the run_list to ["recipe[chef-solo-extension]", "recipe[nxlog]"] from JSON
+        remove_tag => [ "unprocessed" ]
+        match => [ "message", "\[[^\]]+\] %{LOGLEVEL:Severity}: %{GREEDYDATA:MessageTxt}" ]
+    }
   }
-  grok { # chef client warnings
-      type => "nxlog"
-      tags => [ "unprocessed" ]
-      remove_tag => [ "unprocessed" ]
-      match => [ "message", "[/\w_%!$@:.,-]+:%{NUMBER}: %{DATA:Severity}: %{GREEDYDATA:MessageTxt}" ]
+
+  if "unprocessed" in [tags] {
+    grok { # chef client warnings
+        remove_tag => [ "unprocessed" ]
+        match => [ "message", "[/\w_%!$@:.,-]+:%{NUMBER}: %{DATA:Severity}: %{GREEDYDATA:MessageTxt}" ]
+    }
   }
 
   # haproxy
-  grok {
-      type => "nxlog"
-      tags => [ "unprocessed" ]
-      remove_tag => [ "unprocessed" ]
-      match => [ "message", "%{HAPROXYHTTP}" ]
-      add_field => [ "Severity", "INFO" ]
-      add_field => [ "MessageTxt", "%{message}" ]
-      add_field => [ "filename", "%{FileName}" ]
-      remove_field => [ "Stream" ]
+  if "unprocessed" in [tags] {
+    grok {
+        remove_tag => [ "unprocessed" ]
+        match => [ "message", "%{HAPROXYHTTP}" ]
+        add_field => [ "Severity", "INFO" ]
+        add_field => [ "MessageTxt", "%{message}" ]
+        add_field => [ "filename", "%{FileName}" ]
+        remove_field => [ "Stream" ]
+    }
   }
 
   # tomcat 1
-  grok {
-      type => "nxlog"
-      tags => [ "unprocessed" ]
-      remove_tag => [ "unprocessed" ]
-      match => [ "message", "%{LOGLEVEL:Severity}: %{GREEDYDATA:MessageTxt}" ]
-      add_field => [ "filename", "%{FileName}" ]
-      remove_field => [ "Stream" ]
+  if "unprocessed" in [tags] {
+    grok {
+        remove_tag => [ "unprocessed" ]
+        match => [ "message", "%{LOGLEVEL:Severity}: %{GREEDYDATA:MessageTxt}" ]
+        add_field => [ "filename", "%{FileName}" ]
+        remove_field => [ "Stream" ]
+    }
   }
 
   # tomcat 2
-  grok {
-      type => "nxlog"
-      tags => [ "unprocessed" ]
-      remove_tag => [ "unprocessed" ]
-      add_tag => [ "customdatetime" ]
-      match => [ "message", "(?<EventReceivedTime>%{MONTH} %{MONTHDAY}, %{YEAR} %{TIME} (AM|PM)) %{GREEDYDATA:MessageTxt}" ]
-      add_field => [ "filename", "%{FileName}" ]
-      add_field => [ "Severity", "INFO" ]
+  if "unprocessed" in [tags] {
+    grok {
+        remove_tag => [ "unprocessed" ]
+        add_tag => [ "customdatetime" ]
+        match => [ "message", "(?<EventReceivedTime>%{MONTH} %{MONTHDAY}, %{YEAR} %{TIME} (AM|PM)) %{GREEDYDATA:MessageTxt}" ]
+        add_field => [ "filename", "%{FileName}" ]
+        add_field => [ "Severity", "INFO" ]
+    }
   }
 
   # mysqld.log
-  grok {
-      type => "nxlog"
-      tags => [ "unprocessed" ]
+  if "unprocessed" in [tags] {
+    grok {
+        remove_tag => [ "unprocessed" ]
+        add_tag => [ "customdatetime" ]
+        match => [ "message", "(?<EventReceivedTime>\d{2}%{MONTHNUM}%{MONTHDAY} %{TIME}) %{GREEDYDATA:MessageTxt}" ]
+        add_field => [ "filename", "%{FileName}" ]
+        add_field => [ "Severity", "INFO" ]
+    }
+  }
+
+  if "customdatetime" in [tags] {
+    date {
+      remove_tag => [ "customdatetime" ]
+      match => [ "EventReceivedTime", "MMM dd, YYYY hh:mm:ss aa", "yyMMdd HH:mm:ss" ]
+      locale => "US"
+      timezone => "UTC"
+    }
+  }
+
+  if "unprocessed" in [tags] {
+    grok { # other messages from stderr
       remove_tag => [ "unprocessed" ]
-      add_tag => [ "customdatetime" ]
-      match => [ "message", "(?<EventReceivedTime>\d{2}%{MONTHNUM}%{MONTHDAY} %{TIME}) %{GREEDYDATA:MessageTxt}" ]
-      add_field => [ "filename", "%{FileName}" ]
+      match => [ "Stream", "stderr" ]
       add_field => [ "Severity", "INFO" ]
+      add_field => [ "MessageTxt", "%{message}" ]
+    }
   }
 
-  date {
-    type => "nxlog"
-    tags => [ "customdatetime" ]
-    remove_tag => [ "customdatetime" ]
-    match => [ "EventReceivedTime", "MMM dd, YYYY hh:mm:ss aa", "yyMMdd HH:mm:ss" ]
-    locale => "US"
-    timezone => "UTC"
+  if "unprocessed" in [tags] {
+    grok { # other messages stdout
+      remove_tag => [ "unprocessed" ]
+      match => [ "Stream", "stdout" ]
+      add_field => [ "Severity", "INFO" ]
+      add_field => [ "MessageTxt", "%{message}" ]
+    }
   }
 
-  grok { # other messages from stderr
-    type => "nxlog"
-    tags => [ "unprocessed" ]
-    remove_tag => [ "unprocessed" ]
-    match => [ "Stream", "stderr" ]
-    add_field => [ "Severity", "INFO" ]
-    add_field => [ "MessageTxt", "%{message}" ]
-  }
-
-  grok { # other messages stdout
-    type => "nxlog"
-    tags => [ "unprocessed" ]
-    remove_tag => [ "unprocessed" ]
-    match => [ "Stream", "stdout" ]
-    add_field => [ "Severity", "INFO" ]
-    add_field => [ "MessageTxt", "%{message}" ]
-  }
-
-  mutate { # messages from custom locations
-    type => "nxlog"
-    tags => [ "unprocessed" ]
-    remove_tag => [ "unprocessed" ]
-    add_field => [ "Severity", "INFO" ] # TODO: parse most common formats
-    add_field => [ "filename", "%{FileName}" ]
-    add_field => [ "MessageTxt", "%{message}" ]
+  if "unprocessed" in [tags] {
+    mutate { # messages from custom locations
+      remove_tag => [ "unprocessed" ]
+      add_field => [ "Severity", "INFO" ] # TODO: parse most common formats
+      add_field => [ "filename", "%{FileName}" ]
+      add_field => [ "MessageTxt", "%{message}" ]
+    }
   }
 
   grok {
-    type => "nxlog"
     match => [ "host", "%{IPORHOST:parsed_host}(:${POSINT})?" ]
   }
 
   mutate {
-      type => "nxlog"
       replace => [ "@severity", "%{Severity}" ]
       replace => [ "@message", "%{MessageTxt}" ]
       replace => [ "@raw", "%{message}" ]
@@ -174,8 +176,7 @@ filter {
   }
 
   mutate {
-      type => "nxlog"
-      remove => [ "message", "Message", "MessageTxt", "Severity", "SourceModuleType", "SourceModuleName", "EventReceivedTime", "EventReceivedTimeMs", "FileName", "@source_path", "@source", "parsed_host" ]
+      remove_field => [ "message", "Message", "MessageTxt", "Severity", "SourceModuleType", "SourceModuleName", "EventReceivedTime", "EventReceivedTimeMs", "FileName", "@source_path", "@source", "parsed_host" ]
       remove_tag => ["_grokparsefailure"]
   }
 
