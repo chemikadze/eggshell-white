@@ -94,11 +94,25 @@ change-logger:
             action: changeLoggerServer
             parameters:
                 roles: [ logger ]
-            output: 
+            output:
                 logging-dashboard: logging-dashboard
     return:
         logging-dashboard:
             value: '{$.logging-dashboard}'
+
+stop-logging:
+    steps:
+        - do:
+            action: enableLogging
+            parameters:
+                roles: [ logger ]
+
+start-logging:
+    steps:
+        -do:
+            action: disableLogging
+            parameters:
+                roles: [ logger ]
 
 destroy:
     steps:
