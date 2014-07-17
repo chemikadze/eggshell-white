@@ -12,7 +12,8 @@ def make_env(image, identity, group=None):
         {"action": "provisionVms", "parameter": "vmIdentity", "value": identity},
         {"action": ".install-logger", "parameter": "vm-user", "value": identity},
         {"action": ".install-logger", "parameter": "vm-group", "value": group or identity},
-        {"action": "loggingSettings", "parameter": "version", "value": env_parameters['logger_version']}]
+        {"action": "loggingSettings", "parameter": "version", "value": env_parameters['logger_version']},
+        {"action": "provisionVms", "parameter": "retryCount", "value": "3"}]
     }
 
 @environment({
