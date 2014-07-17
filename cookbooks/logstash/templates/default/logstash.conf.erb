@@ -41,20 +41,7 @@ filter {
       # v1   cobalt-52aab45be4b0ef4e9b9e0a9b.applications.52d4de58e4b08ec56d58a714.workflow/jobid.stepid.stepname/filename.txt
       # v2   52d4de58e4b08ec56d58a714/jobid.stepid.stepname/filename.txt
       # init 52d4de58e4b08ec56d58a714/chef-init/filename.txt
-      match => [ "FileName", "(cobalt-%{BASE16NUM:appId}\.applications\.%{BASE16NUM:instId}\.?%{DATA:componentId}|%{BASE16NUM:instId})/(%{DATA:jobId}\.%{DATA:stepId}\.%{DATA:stepname}|%{DATA:chefInit})/%{GREEDYDATA:filename}" ]
-  }
-
-  grok {
-      match => [ "instId", "cobalt-%{BASE16NUM:appId}\.applications\.%{BASE16NUM:realInstId}\.?%{DATA:componentId}" ]
-      add_tag => [ "parsedinstid" ]
-  }
-
-  if "parsedinstid" in [tags] {
-    mutate {
-      replace => [ "instId", "%{realInstId}" ]
-      remove_tag => ["parsedinstid"]
-      remove_field => ["realInstId"]
-    }
+      match => [ "FileName", "(cobalt-%{BASE16NUM:appId}\.applications\.%{BASE16NUM}\.?%{DATA:componentId}|%{BASE16NUM})/(%{DATA:jobId}\.%{DATA:stepId}\.%{DATA:stepname}|%{DATA:chefInit})/%{GREEDYDATA:filename}" ]
   }
 
   grok {

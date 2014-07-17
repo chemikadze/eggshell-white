@@ -192,6 +192,7 @@ EOF
 ############################################################
 
 EOF
+      INST_ID=$(echo $GROUP | sed -re 's/cobalt-[^.]+.[^.]+.([^.]+).*/\1/')
       case $TARGET_TYPE in
         qubell)
           TARGET_PREFIX_LEN=$(awk -v a="$TARGET_PATH" -v b=".undeploy.me" 'BEGIN{if (index(a, b)==0) {print length(a)} else {print index(a,b) + 12}}')
@@ -204,6 +205,7 @@ EOF
     Exec \$Message = \$raw_event;  # for backward compatibility
     Exec \$message = \$raw_event;
     Exec \$FileName = substr(file_name(), ${TARGET_PREFIX_LEN});
+    Exec \$instId = "$INST_ID";
     Exec \$Stream = "stdout";
     Exec \$EventReceivedTimeMs = string(\$EventReceivedTime) + "." + string(microsecond(\$EventReceivedTime));
     Exec to_json();
@@ -217,6 +219,7 @@ EOF
     Exec \$Message = \$raw_event;  # for backward compatibility
     Exec \$message = \$raw_event;
     Exec \$FileName = substr(file_name(), ${TARGET_PREFIX_LEN});
+    Exec \$instId = "$INST_ID";
     Exec \$Stream = "stderr";
     Exec \$EventReceivedTimeMs = string(\$EventReceivedTime) + "." + string(microsecond(\$EventReceivedTime));
     Exec to_json();
@@ -256,7 +259,6 @@ EOF
         ;;
 
         file)
-          INST_ID=$(echo $GROUP | sed -re 's/cobalt-[^.]+.[^.]+.([^.]+).*/\1/')
           cat <<EOF
 <Input job_file_$TARGET_ID>
     Module im_file
