@@ -22,7 +22,7 @@ launch:
                 hardwareId: "m1.small"
                 roleName: logger
                 vmIdentity: ec2-user
-                imageId: us-east-1/ami-3ecd1e57
+                imageId: us-east-1/ami-eb6b0182
             output:
                 loggerips: ips
                 logging-dashboard: logging-dashboard
