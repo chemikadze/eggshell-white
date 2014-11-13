@@ -184,11 +184,11 @@ CacheDir %ROOTDIR%/cache
 EOF
 
     cat $NXLOG_REGISTRY | while read TARGET_TYPE GROUP LOGGER_HOST TARGET_PATH; do
-      TARGET_ID=${GROUP}_$(head -c 100 /dev/urandom | base64 | sed 's/[+=/A-Z]//g' | tail -c 9)
+      TARGET_ID=$(head -c 100 /dev/urandom | base64 | sed 's/[+=/A-Z]//g' | tail -c 9)
       cat <<EOF
 
 ############################################################
-# TYPE: $TARGET_TYPE    PATH: $TARGET_PATH    HOST: $LOGGER_HOST
+# TYPE: $TARGET_TYPE    PATH: $TARGET_PATH    HOST: $LOGGER_HOST  GROUP: $GROUP
 ############################################################
 
 EOF
