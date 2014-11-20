@@ -1,18 +1,13 @@
-oldGetWidgetName = app.propertyWidgets.getWidgetName
-
-app.propertyWidgets.getWidgetName = function(instance, returnValue, userValue) {
-  if (returnValue.id.indexOf &&
-      (returnValue.id.indexOf("kibana-instance-dashboard") >= 0 ||
-       returnValue.id.indexOf("logging-dashboard") >= 0)) {
-    return 'KibanaLogs'
-  } else if (oldGetWidgetName) {
-    return oldGetWidgetName(instance, returnValue, userValue)
-  } else {
-    return 'Default';
+app.widgets.registerWidgetRouter(function(property, location, instance){
+  var name = property.path[0];
+  if ((location.indexOf('instance') == 0) && name.indexOf &&
+      (name.indexOf("kibana-instance-dashboard") >= 0 ||
+       name.indexOf("logging-dashboard") >= 0)) {
+    return KibanaLogs
   }
-}
+});
 
-app.propertyWidgets.KibanaLogs = (function() {
+function KibanaLogs(property, location, instance) {
 
   var MAX_ITEMS = 1000;
   var config = {
@@ -167,15 +162,15 @@ app.propertyWidgets.KibanaLogs = (function() {
     return root;
   }
 
-  function onInstanceLinkClicked(instance, returnValue, userValue) {
+  function onInstanceLinkClicked(instance, runtimeValue, userValue) {
     return function() {
-      var ejsClient = getClient(elasticsearchUrl(returnValue.value));
+      var ejsClient = getClient(elasticsearchUrl(runtimeValue));
       var dashboard = dashboardForInstance(instance)
 
       ejsClient.client.option("async", false);
       elasticsearchSaveDashboard(ejsClient, dashboard,
         function() {
-          var url = parseUrl(returnValue.value);
+          var url = parseUrl(runtimeValue);
           url.hash = "#/dashboard/elasticsearch/" + dashboard.id;
           window.open(url, "_blank");
         },
@@ -194,9 +189,9 @@ app.propertyWidgets.KibanaLogs = (function() {
     '<img height="15" width="15" src="http://qubell-logging.s3.amazonaws.com/ff-shield.png" >&nbsp;icon in address bar, ' +
     'or disable mixed content blocking by disabling <tt>block_active_content</tt> flag in <tt>about:config</tt>.';
 
-  function onLogParametersClicked(instance, returnValue, userValue) {
+  function onLogParametersClicked(instance, runtimeValue, userValue) {
     function onShowFilteredLogs(ev) {
-      var ejsClient = getClient(elasticsearchUrl(returnValue.value));
+      var ejsClient = getClient(elasticsearchUrl(runtimeValue));
 
       var $dropdown = $(ev.target).parent(".dropdown-menu");
       function collectCheckboxes(dataAttribute) {
@@ -227,7 +222,7 @@ app.propertyWidgets.KibanaLogs = (function() {
       ejsClient.client.option("async", false);
       elasticsearchSaveDashboard(ejsClient, dashboard,
         function() {
-          var url = parseUrl(returnValue.value);
+          var url = parseUrl(runtimeValue);
           url.hash = "#/dashboard/elasticsearch/" + dashboard.id;
           window.open(url, "_blank");
         },
@@ -235,7 +230,7 @@ app.propertyWidgets.KibanaLogs = (function() {
           var msg =
             'Can not upload dashboard settings to logging dashboard. ' +
             'Check that logger instance with address ' +
-            '<a style="' + dropdownStyle + '" href="' + parseUrl(returnValue.value).host + '">' + parseUrl(returnValue.value).host + '</a>' +
+            '<a style="' + dropdownStyle + '" href="' + parseUrl(runtimeValue).host + '">' + parseUrl(runtimeValue).host + '</a>' +
             ' is running.';
           if ($.browser.mozilla) {
             msg += '<br/><br/>' + mozillaWarning;
@@ -293,7 +288,7 @@ app.propertyWidgets.KibanaLogs = (function() {
       var $dropdown = $el.siblings(".dropdown-menu");
       renderWaitingDropdown($dropdown);
 
-      var ejsClient = getClient(elasticsearchUrl(returnValue.value));
+      var ejsClient = getClient(elasticsearchUrl(runtimeValue));
       elasticsearchMetaForInstance(ejsClient, instance,
         function(meta) {
           renderDropdown($dropdown, meta.steps, meta.vms, meta.jobs)
@@ -302,7 +297,7 @@ app.propertyWidgets.KibanaLogs = (function() {
           var msg =
             'Can not load information about stored logs. ' +
             'Check that logger instance with address ' +
-            '<a style="' + dropdownStyle + '" href="http://' + parseUrl(returnValue.value).host + '">' + parseUrl(returnValue.value).host + '</a>' +
+            '<a style="' + dropdownStyle + '" href="http://' + parseUrl(runtimeValue).host + '">' + parseUrl(runtimeValue).host + '</a>' +
             ' is running.'
           if ($.browser.mozilla) {
             msg += '<br/><br/>' + mozillaWarning;
@@ -703,19 +698,11 @@ app.propertyWidgets.KibanaLogs = (function() {
     return group;
   }
 
-  return {
-    layout: 'inline',
-    render: function(instance, returnValue, userValue) {
-      return renderButton(false,
-        onInstanceLinkClicked(instance, returnValue, userValue),
-        onLogParametersClicked(instance, returnValue, userValue)).get(0);
-    },
-    renderSmall: function(instance, returnValue, userValue) {
-      return renderButton(true,
-        onInstanceLinkClicked(instance, returnValue, userValue),
-        onLogParametersClicked(instance, returnValue, userValue)).get(0);
-    }
-  }
+  $(this).empty().append(
+    renderButton(location == 'instance-dashboard',
+      onInstanceLinkClicked(instance, property.runtimeValue, property.userValue),
+      onLogParametersClicked(instance, property.runtimeValue, property.userValue)
+    ).get(0)
+  )
 
-})()
-
+}
