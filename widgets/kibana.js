@@ -44,10 +44,48 @@ function KibanaLogs(property, location, instance) {
     return stepName == "~chef-install~" || stepName == "~chef-init~";
   }
 
+  function resolveInstanceId(suffix, instance, originalInstance, onSuccess) {
+    var parent = null;
+    for (var i = 0; i < instance.submodules.length; ++i) {
+      if (instance.submodules[i].moduleType == "parent") {
+        parent = instance.submodules[i];
+      }
+    }
+    if (parent == null) {
+      originalInstance.kibana__fullId = instance.id + suffix; 
+      onSuccess(originalInstance)
+    } else {
+      server.instances.first(parent.id, function (_req, parent) {
+        var myReference = null;
+        for (var i = 0; i < parent.submodules.length; ++i) {
+          if (parent.submodules[i].id == instance.id) {
+            myReference = parent.submodules[i];
+          }
+        }
+        if (myReference == null) {
+          console.error("Failed to find child " + instance.id + " reference in parent " + parent.id)
+          onSuccess(originalInstance)
+        } else {
+          resolveInstanceId("." + myReference.componentId + suffix, parent, originalInstance, onSuccess)
+        }        
+      })
+    }
+  }
+
+  function getInstanceId(instance) {
+    if (instance.kibana__fullId) {
+      return instance.kibana__fullId;
+    } else {
+      console.error("Widget bug: expected full instance id to present")
+      return instance.id;
+    }
+    
+  }
+
   function elasticsearchMetaForInstance(client, instance, onSuccess, onFailure) {
     // TODO: this is heavy, should use simple facet without script
     var request = client.Request()
-      .query(client.QueryStringQuery("instId:\"" + instance.id + "\""))
+      .query(client.QueryStringQuery("instId:\"" + getInstanceId(instance) + "\""))
       .size(0)
       .facet(client.TermsFacet("steps").field("stepname.raw").size(MAX_ITEMS))
       .facet(client.TermsFacet("jobs").field("jobId.raw").size(MAX_ITEMS))
@@ -163,7 +201,7 @@ function KibanaLogs(property, location, instance) {
   }
 
   function onInstanceLinkClicked(instance, runtimeValue, userValue) {
-    return function() {
+    function assumingExpandedInstanceIdBlock(instance) {
       var ejsClient = getClient(elasticsearchUrl(runtimeValue));
       var dashboard = dashboardForInstance(instance)
 
@@ -178,6 +216,10 @@ function KibanaLogs(property, location, instance) {
           alert("Can not connect to logging dashboard.")
           throw "Can not save dashboard '" + dashboard.title + "'"
         })
+    }    
+    return function() {
+      var self = this;
+      resolveInstanceId("", instance, instance, assumingExpandedInstanceIdBlock.bind(self))
     }
   }
 
@@ -283,10 +325,9 @@ function KibanaLogs(property, location, instance) {
       $el.append($('<a class="btn">Open</a>').click(onShowFilteredLogs))
     }
 
-    return function() {
+    function assumingExpandedInstanceIdBlock(instance) {
       var $el = $(this);
       var $dropdown = $el.siblings(".dropdown-menu");
-      renderWaitingDropdown($dropdown);
 
       var ejsClient = getClient(elasticsearchUrl(runtimeValue));
       elasticsearchMetaForInstance(ejsClient, instance,
@@ -304,6 +345,14 @@ function KibanaLogs(property, location, instance) {
           }
           renderFailedDropdown($dropdown, msg);
         });
+    }
+    
+    return function() {
+      var self = this;
+      var $el = $(this);
+      var $dropdown = $el.siblings(".dropdown-menu");
+      renderWaitingDropdown($dropdown);
+      resolveInstanceId("", instance, instance, assumingExpandedInstanceIdBlock.bind(self))
     }
   }
 
@@ -350,7 +399,7 @@ function KibanaLogs(property, location, instance) {
 
   function dashboardForInstance(instance) {
     return {
-          "id": "inst-" + instance.id,
+          "id": "inst-" + getInstanceId(instance),
           "title": "Logs for '" + instance.name + "'",
           "editable": true,
           "failover": false,
@@ -609,7 +658,7 @@ function KibanaLogs(property, location, instance) {
                           "alias": "",
                           "id": 1,
                           "mandate": "must",
-                          "query": "instId:\"" + instance.id + "\"",
+                          "query": "instId:\"" + getInstanceId(instance) + "\"",
                           "type": "querystring"
                       }
                   }
