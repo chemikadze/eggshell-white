@@ -129,7 +129,12 @@ function KibanaLogs(property, location, instance) {
           jobSteps.sort();
           var jobName = jobId;
           if (jobSteps.length) {
-            jobName += " (" + jobSteps + ")";
+            var jobStepsString = jobSteps.toString();
+            var maxLen = 45;
+            if (jobStepsString.length > maxLen) {
+              jobStepsString = jobStepsString.substring(0, maxLen) + "...";
+            }
+            jobName += " (" + jobStepsString + ")";
           }
           jobs.push({'id': jobId, 'name': jobName});
         }
