@@ -36,8 +36,8 @@ function KibanaLogs(property, location, instance) {
       });
   };
 
-  function hiddenJob(job) {
-    return job.id == "~chef-install~" || job.id == "~chef-init~";
+  function hiddenJob(jobId) {
+    return jobId == "~chef-install~" || jobId == "~chef-init~";
   }
 
   function hiddenStep(stepName) {
@@ -82,19 +82,17 @@ function KibanaLogs(property, location, instance) {
     
   }
 
-  function elasticsearchMetaForInstance(client, instance, onSuccess, onFailure) {
-    // TODO: this is heavy, should use simple facet without script
-    var request = client.Request()
-      .query(client.QueryStringQuery("instId:\"" + getInstanceId(instance) + "\""))
-      .size(0)
-      .facet(client.TermsFacet("steps").field("stepname.raw").size(MAX_ITEMS))
-      .facet(client.TermsFacet("jobs").field("jobId.raw").size(MAX_ITEMS))
-      .facet(client.TermsFacet("vms").field("host.raw").size(MAX_ITEMS));
-
-    request.doSearch(
-      function(r) {
+  function elasticsearchMetaForInstance(client, instance, onSuccess, onFailure) {  
+    function handleFacetData(r) {
         if (!r['facets']) {
           onSuccess({'vms': [], 'steps': [], 'jobs': []});
+          return;
+        }
+
+        function itemOrdering(a, b) { 
+          if (a.name > b.name) return 1; 
+          else if (a.name < b.name) return -1;
+          else return 0;
         }
 
         var steps = [];
@@ -106,7 +104,7 @@ function KibanaLogs(property, location, instance) {
           }
           steps.push({'id': stepName, 'name': stepName});
         }
-        steps.sort();
+        steps.sort(itemOrdering);
 
         var vms = [];
         var vmsTerms = r['facets']['vms']['terms'];
@@ -114,61 +112,64 @@ function KibanaLogs(property, location, instance) {
           var vmName = vmsTerms[i]['term'];
           vms.push({'id': vmName, 'name': vmName});
         }
-        vms.sort();
-
-        var jobMapping = {};
-        var jobObjects = [];
-        try {
-          // try all available sources: history, current and all
-          for (var i = 0; i < instance.workflowHistory.length; ++i) {
-            var item = instance.workflowHistory[i];
-            jobMapping[item.id] = item;
-          }
-          if (instance.currentWorkfow) {
-            jobMapping[instance.currentWorkfow.id] = instance.currentWorkfow;
-          }
-          for (var i = 0; i < instance.workflows.length; ++i) {
-            var item = instance.workflows[i];
-            if (!jobMapping[item.id]) {
-              jobMapping[item.id] = item;
-            }
-          }
-
-          var jobTerms = r['facets']['jobs']['terms'];
-          for (var i = 0; i < jobTerms.length; ++i) {
-            var jobId = jobTerms[i]['term'];
-            var jobObject = {"id": jobId};
-            if (jobMapping.hasOwnProperty(jobId)) {
-              jobObject = $.extend(true, jobObject, jobMapping[jobId]);
-            }
-            jobObjects.push(jobObject);
-          }
-          jobObjects.sort(function (a, b) {
-            return (a.startedAt || Number.MAX_VALUE) - (b.startedAt || Number.MAX_VALUE);
-          });
-        } catch (e) {
-          console.error("Can not retrieve job metadata for instance. Probably widget is out-of-date.");
-        }
+        vms.sort(itemOrdering);
 
         var jobs = [];
-        for (var i = 0; i < jobObjects.length; ++i) {
-          var job = jobObjects[i];
-          if (hiddenJob(job)) {
+        var jobTerms = r['facets']['jobs']['terms'];
+        for (var i = 0; i < jobTerms.length; ++i) {
+          var jobId = jobTerms[i]['term'];
+          if (hiddenJob(jobId)) {
             continue;
           }
-          var title = job.id;
-          try {
-            var date = new Date(job.startedAt);
-            if (job.name) {
-              title = job.name + " (" + date.toDateString() + " " + date.toLocaleTimeString() + ")";
-            }
-          } catch (e) {
-            console.error("Can not format job information. Probably widget is out-of-date.");
+          var jobSteps = [];
+          var jobStepsTerms = r['facets']['jobs-' + jobId + '-steps']['terms'];
+          for (var j = 0; j < jobStepsTerms.length; ++j) {
+            jobSteps.push(jobStepsTerms[j]['term']);
           }
-          jobs.push({'id': job.id, 'name': title});
+          jobSteps.sort();
+          var jobName = jobId;
+          if (jobSteps.length) {
+            jobName += " (" + jobSteps + ")";
+          }
+          jobs.push({'id': jobId, 'name': jobName});
         }
+        jobs.sort(itemOrdering);
 
         onSuccess({'vms': vms, 'steps': steps, 'jobs': jobs});
+    }
+
+    var request = client.Request()
+      .query(client.QueryStringQuery("instId:\"" + getInstanceId(instance) + "\""))
+      .size(0)
+      .facet(client.TermsFacet("jobs").field("jobId.raw").size(MAX_ITEMS))
+
+    request.doSearch(
+      function (r) {
+        if (!r['facets']) {
+          onSuccess({'vms': [], 'steps': [], 'jobs': []});
+          return;
+        }
+
+        var jobIds = [];
+        var jobTerms = r['facets']['jobs']['terms'];
+        for (var i = 0; i < jobTerms.length; ++i) {
+          jobIds.push(jobTerms[i]['term']);
+        }
+
+        var request = client.Request()
+          .query(client.QueryStringQuery("instId:\"" + getInstanceId(instance) + "\""))
+          .size(0)
+          .facet(client.TermsFacet("steps").field("stepname.raw").size(MAX_ITEMS))
+          .facet(client.TermsFacet("vms").field("host.raw").size(MAX_ITEMS))
+          .facet(client.TermsFacet("jobs").field("jobId.raw").size(MAX_ITEMS));
+
+        for (var i = 0; i < jobIds.length; ++i) {
+          var facet = client.TermsFacet("jobs-" + jobIds[i] + "-steps");
+          facet.field("stepname.raw").size(MAX_ITEMS).facetFilter(client.TermFilter('jobId.raw', jobIds[i]));
+          request.facet(facet);
+        }
+
+        request.doSearch(handleFacetData, onFailure);
       },
       onFailure)
   }
